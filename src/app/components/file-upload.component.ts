@@ -1,12 +1,6 @@
 // src/app/components/wedding-photo-upload/wedding-photo-upload.component.ts
 import { HttpClient, HttpEventType } from '@angular/common/http';
-import {
-  Component,
-  DestroyRef,
-  inject,
-  signal,
-  WritableSignal,
-} from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -20,7 +14,7 @@ export class WeddingPhotoUploadComponent {
   private readonly http = inject(HttpClient);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly selectedFile: WritableSignal<File | null> = signal(null);
+  readonly selectedFile = signal<File | null>(null);
   readonly isDragging = signal(false);
   readonly uploading = signal(false);
   readonly uploadProgress = signal(0);
