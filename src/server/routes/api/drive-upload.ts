@@ -1,4 +1,3 @@
-// src/server/routes/api/drive-upload.ts
 import { google } from 'googleapis';
 import { defineEventHandler, readMultipartFormData } from 'h3';
 import { Readable } from 'stream';
