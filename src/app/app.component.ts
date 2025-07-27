@@ -9,6 +9,7 @@ import { RouterOutlet } from '@angular/router';
   styles: `
     :host {
       text-align: center;
+      margin: auto;
     }
   `,
 })

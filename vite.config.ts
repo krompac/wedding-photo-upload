@@ -1,6 +1,7 @@
 /// <reference types="vitest" />
 
 import analog from '@analogjs/platform';
+import angular from '@analogjs/vite-plugin-angular';
 import { defineConfig } from 'vite';
 
 // https://vitejs.dev/config/
@@ -11,7 +12,12 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     mainFields: ['module'],
   },
-  plugins: [analog()],
+  plugins: [
+    analog(),
+    angular({
+      inlineStylesExtension: 'scss',
+    }),
+  ],
   server: {
     allowedHosts: ['70b598220c6c.ngrok.app'],
   },

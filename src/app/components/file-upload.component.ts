@@ -1,13 +1,14 @@
 // src/app/components/wedding-photo-upload/wedding-photo-upload.component.ts
 import { HttpClient, HttpEventType } from '@angular/common/http';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-wedding-photo-upload',
   standalone: true,
   templateUrl: `file-upload.component.html`,
-  styleUrl: 'file-upload.component.css',
+  styleUrl: 'file-upload.component.scss',
+  imports: [],
 })
 export class WeddingPhotoUploadComponent {
   /* Dependency injections */
@@ -15,11 +16,16 @@ export class WeddingPhotoUploadComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly selectedFile = signal<File | null>(null);
+  readonly previewUrl = signal<string | null>(null);
   readonly isDragging = signal(false);
   readonly uploading = signal(false);
   readonly uploadProgress = signal(0);
   readonly uploadSuccess = signal(false);
   readonly errorMessage = signal('');
+
+  constructor() {
+    effect(() => {});
+  }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -29,13 +35,28 @@ export class WeddingPhotoUploadComponent {
       // Check if file is an image
       if (!file.type.match('image.*')) {
         this.errorMessage.set(
-          'Molimo učitajte samo slikovne datoteke (jpg, png, itd.)'
+          'Molimo učitajte samo slikovne datoteke (jpg, png, itd.)',
         );
         return;
       }
 
       this.selectedFile.set(file);
-      this.uploadFile();
+
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        this.previewUrl.set(e.target?.result as string);
+      };
+
+      reader.onerror = () => {
+        this.errorMessage.set(
+          'Greška kod učitavanja slike, pokušajte ponovno.',
+        );
+        this.previewUrl.set(null);
+        this.selectedFile.set(null);
+      };
+
+      reader.readAsDataURL(file);
     }
   }
 
@@ -54,7 +75,7 @@ export class WeddingPhotoUploadComponent {
     formData.append('file', selectedFile);
     formData.append(
       'filename',
-      `vjencanje_foto_${Date.now()}_${selectedFile.name}`
+      `vjencanje_foto_${Date.now()}_${selectedFile.name}`,
     );
 
     // Send the file to our server endpoint
@@ -68,7 +89,7 @@ export class WeddingPhotoUploadComponent {
         next: (event) => {
           if (event.type === HttpEventType.UploadProgress && event.total) {
             this.uploadProgress.set(
-              Math.round((event.loaded / event.total) * 100)
+              Math.round((event.loaded / event.total) * 100),
             );
           } else if (event.type === HttpEventType.Response) {
             this.uploading.set(false);
@@ -78,7 +99,7 @@ export class WeddingPhotoUploadComponent {
         error: (error) => {
           this.uploading.set(false);
           this.errorMessage.set(
-            'Učitavanje nije uspjelo. Molimo pokušajte ponovno.'
+            'Učitavanje nije uspjelo. Molimo pokušajte ponovno.',
           );
           console.error('Error uploading file:', error);
         },

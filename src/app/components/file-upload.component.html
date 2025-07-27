@@ -18,72 +18,78 @@
 
   <div class="upload-area">
     @if (!uploading() && !uploadSuccess()) {
-    <div class="upload-prompt">
-      <div class="icon-container">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="camera-icon"
-        >
-          <path
-            d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
-          ></path>
-          <circle cx="12" cy="13" r="4"></circle>
-        </svg>
+      <div class="upload-prompt">
+        <div class="icon-container">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="camera-icon"
+          >
+            <path
+              d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+            ></path>
+            <circle cx="12" cy="13" r="4"></circle>
+          </svg>
+        </div>
+        <input
+          type="file"
+          id="fileInput"
+          (change)="onFileSelected($event)"
+          accept="image/*"
+          multiple
+        />
+        <label for="fileInput" class="select-button">
+          Odaberite Fotografije
+        </label>
       </div>
-      <input
-        type="file"
-        id="fileInput"
-        (change)="onFileSelected($event)"
-        accept="image/*"
-        multiple
-      />
-      <label for="fileInput" class="select-button">
-        Odaberite Fotografije
-      </label>
-    </div>
-    } @if (uploading()) {
-    <div class="upload-status">
-      <p>Učitavanje: {{ selectedFile()?.name }}</p>
-      <div class="progress-bar">
-        <div class="progress" [style.width.%]="uploadProgress()"></div>
+    }
+    @if (previewUrl(); as preview) {
+      <img [src]="preview" />
+    }
+    @if (uploading()) {
+      <div class="upload-status">
+        <p>Učitavanje: {{ selectedFile()?.name }}</p>
+        <div class="progress-bar">
+          <div class="progress" [style.width.%]="uploadProgress()"></div>
+        </div>
+        <p class="progress-text">{{ uploadProgress() }}%</p>
       </div>
-      <p class="progress-text">{{ uploadProgress() }}%</p>
-    </div>
-    } @if (uploadSuccess()) {
-    <div class="success-message">
-      <div class="success-icon">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-          <polyline points="22 4 12 14.01 9 11.01"></polyline>
-        </svg>
+    }
+    @if (uploadSuccess()) {
+      <div class="success-message">
+        <div class="success-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <h3>Hvala Vam!</h3>
+        <p>Vaša fotografija je dodana u našu vjenčanu kolekciju</p>
+        <button class="upload-more-btn" (click)="resetForm()">
+          Učitajte Još Jednu Fotografiju
+        </button>
       </div>
-      <h3>Hvala Vam!</h3>
-      <p>Vaša fotografija je dodana u našu vjenčanu kolekciju</p>
-      <button class="upload-more-btn" (click)="resetForm()">
-        Učitajte Još Jednu Fotografiju
-      </button>
-    </div>
-    } @if (errorMessage(); as errMsg) {
-    <div class="error-message">
-      <p>{{ errMsg }}</p>
-      <button class="try-again-btn" (click)="resetForm()">
-        Pokušajte Ponovno
-      </button>
-    </div>
+    }
+    @if (errorMessage(); as errMsg) {
+      <div class="error-message">
+        <p>{{ errMsg }}</p>
+        <button class="try-again-btn" (click)="resetForm()">
+          Pokušajte Ponovno
+        </button>
+      </div>
     }
   </div>
 

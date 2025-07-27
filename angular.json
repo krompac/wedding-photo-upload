@@ -8,6 +8,14 @@
       "root": ".",
       "sourceRoot": "src",
       "prefix": "app",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        },
+        "@schematics/angular:application": {
+          "style": "scss"
+        }
+      },
       "architect": {
         "build": {
           "builder": "@analogjs/platform:vite",
