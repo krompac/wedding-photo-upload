@@ -1,6 +1,6 @@
 // src/app/pages/wedding-photos.page.ts
 import { Component } from '@angular/core';
-import { WeddingPhotoUploadComponent } from '../components/file-upload.component';
+import { WeddingPhotoUploadComponent } from '../components/file-upload/file-upload.component';
 
 @Component({
   selector: 'app-wedding-photos-page',

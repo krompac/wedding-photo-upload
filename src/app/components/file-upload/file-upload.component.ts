@@ -2,13 +2,19 @@
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { PreviewImgComponent } from '../preview-img/preview-img.component';
+
+type PhotoFile = {
+  file: File;
+  src: string;
+};
 
 @Component({
   selector: 'app-wedding-photo-upload',
   standalone: true,
   templateUrl: `file-upload.component.html`,
   styleUrl: 'file-upload.component.scss',
-  imports: [],
+  imports: [PreviewImgComponent],
 })
 export class WeddingPhotoUploadComponent {
   /* Dependency injections */
@@ -16,12 +22,13 @@ export class WeddingPhotoUploadComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly selectedFile = signal<File | null>(null);
-  readonly previewUrl = signal<string | null>(null);
   readonly isDragging = signal(false);
   readonly uploading = signal(false);
   readonly uploadProgress = signal(0);
   readonly uploadSuccess = signal(false);
   readonly errorMessage = signal('');
+
+  readonly files = signal<PhotoFile[]>([]);
 
   constructor() {
     effect(() => {});
@@ -40,20 +47,23 @@ export class WeddingPhotoUploadComponent {
         return;
       }
 
-      this.selectedFile.set(file);
-
       const reader = new FileReader();
 
       reader.onload = (e) => {
-        this.previewUrl.set(e.target?.result as string);
+        const result = e.target?.result;
+
+        if (typeof result === 'string') {
+          this.addPhotoFile({
+            file,
+            src: result,
+          });
+        }
       };
 
       reader.onerror = () => {
         this.errorMessage.set(
           'Greška kod učitavanja slike, pokušajte ponovno.',
         );
-        this.previewUrl.set(null);
-        this.selectedFile.set(null);
       };
 
       reader.readAsDataURL(file);
@@ -61,7 +71,7 @@ export class WeddingPhotoUploadComponent {
   }
 
   uploadFile(): void {
-    const selectedFile = this.selectedFile();
+    const selectedFile = this.files().at(0);
 
     if (!selectedFile) return;
 
@@ -72,10 +82,10 @@ export class WeddingPhotoUploadComponent {
 
     // Create FormData to send the file
     const formData = new FormData();
-    formData.append('file', selectedFile);
+    formData.append('file', selectedFile.file);
     formData.append(
       'filename',
-      `vjencanje_foto_${Date.now()}_${selectedFile.name}`,
+      `vjencanje_foto_${Date.now()}_${selectedFile.file.name}`,
     );
 
     // Send the file to our server endpoint
@@ -112,5 +122,17 @@ export class WeddingPhotoUploadComponent {
     this.uploadProgress.set(0);
     this.uploadSuccess.set(false);
     this.errorMessage.set('');
+  }
+
+  removePhotoFile(index: number): void {
+    this.files.update((files) => {
+      files.splice(index, 1);
+
+      return files.slice();
+    });
+  }
+
+  private addPhotoFile(photoFile: PhotoFile): void {
+    this.files.update((files) => [photoFile, ...files]);
   }
 }
