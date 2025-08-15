@@ -3,5 +3,5 @@
 <img [src]="photoFile.src" />
 
 @if (!photoFile.state) {
-  <button class="remove-btn">X</button>
+  <button class="remove-btn" (click)="onRemoveClicked()">X</button>
 }

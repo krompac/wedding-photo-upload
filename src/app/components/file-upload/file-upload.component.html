@@ -49,12 +49,12 @@
       </div>
     }
     <div class="container">
-      @for (file of files(); track file.src; let index = $index) {
-        <app-preview-img [file]="file" (remove)="removePhotoFile(index)" />
+      @for (file of files(); track file.id) {
+        <app-preview-img [file]="file" (remove)="removePhotoFile(file.id)" />
       }
     </div>
-    @if (files().length > 0) {
-      <button (click)="uploadFiles()">Prenesi</button>
+    @if (files().length > 0 && !uploadSuccess()) {
+      <button (click)="uploadFiles()" [disabled]="uploading()">Prenesi</button>
     }
     @if (uploading()) {
       <div class="upload-status">

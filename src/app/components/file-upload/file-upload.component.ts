@@ -1,17 +1,14 @@
 // src/app/components/wedding-photo-upload/wedding-photo-upload.component.ts
 import { HttpClient, HttpEventType } from '@angular/common/http';
-import {
-  Component,
-  computed,
-  DestroyRef,
-  effect,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PreviewImgComponent } from '../preview-img/preview-img.component';
 
+import { EntityId } from '@ngrx/signals/entities';
 import { PhotoFile } from '../../model/photo-file.model';
+import PhotoFileStore from '../../store/photo-file.store';
+
+import ShortUniqueId from 'short-unique-id';
 
 @Component({
   selector: 'app-wedding-photo-upload',
@@ -19,17 +16,17 @@ import { PhotoFile } from '../../model/photo-file.model';
   templateUrl: `file-upload.component.html`,
   styleUrl: 'file-upload.component.scss',
   imports: [PreviewImgComponent],
+  providers: [PhotoFileStore],
 })
 export class WeddingPhotoUploadComponent {
   /* Dependency injections */
   private readonly http = inject(HttpClient);
+  private readonly store = inject(PhotoFileStore);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly selectedFile = signal<File | null>(null);
-  readonly isDragging = signal(false);
   readonly errorMessage = signal('');
 
-  readonly files = signal<PhotoFile[]>([]);
+  readonly files = this.store.entities;
 
   readonly uploading = computed(() =>
     this.files().some((file) => file.state === 'uploading'),
@@ -40,10 +37,6 @@ export class WeddingPhotoUploadComponent {
 
     return files.length > 0 && files.every((file) => file.state === 'success');
   });
-
-  constructor() {
-    effect(() => {});
-  }
 
   onFileSelected(event: Event): void {
     const loadFile = (file: File) => {
@@ -61,7 +54,8 @@ export class WeddingPhotoUploadComponent {
         const result = e.target?.result;
 
         if (typeof result === 'string') {
-          this.addPhotoFile({
+          this.store.addPhotoFile({
+            id: new ShortUniqueId().rnd(20),
             file,
             src: result,
           });
@@ -90,19 +84,11 @@ export class WeddingPhotoUploadComponent {
 
   resetForm(): void {
     this.errorMessage.set('');
-    this.files.set([]);
+    this.store.resetPhotos();
   }
 
-  removePhotoFile(index: number): void {
-    this.files.update((files) => {
-      files.splice(index, 1);
-
-      return files.slice();
-    });
-  }
-
-  private addPhotoFile(photoFile: PhotoFile): void {
-    this.files.update((files) => [photoFile, ...files]);
+  removePhotoFile(id: EntityId): void {
+    this.store.removePhotoFile(id);
   }
 
   private uploadFile(fileToUpload: PhotoFile): void {
@@ -119,7 +105,12 @@ export class WeddingPhotoUploadComponent {
     //       i onda jedna wrapper componenta koja bude imala count i završni all is finished!
 
     // Send the file to our server endpoint
-    fileToUpload.state = 'uploading';
+    const id = fileToUpload.id;
+
+    const updateState = (state: PhotoFile['state']) =>
+      this.store.updateStatus(id, state);
+
+    updateState('uploading');
 
     this.http
       .post<any>('/api/drive-upload', formData, {
@@ -132,11 +123,11 @@ export class WeddingPhotoUploadComponent {
           if (event.type === HttpEventType.UploadProgress && event.total) {
             // TODO: možda poslije tu napraviti neku upload progress logiku
           } else if (event.type === HttpEventType.Response) {
-            fileToUpload.state = 'success';
+            updateState('success');
           }
         },
         error: (error) => {
-          fileToUpload.state = 'error';
+          updateState('error');
           this.errorMessage.set(
             'Učitavanje nije uspjelo. Molimo pokušajte ponovno.',
           );
