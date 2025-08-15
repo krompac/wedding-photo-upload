@@ -1,9 +1,23 @@
 :host {
+  position: relative;
+
+  &.uploading::after {
+    content: "Uploading";
+    display: block;
+    position: absolute;
+    inset: 0;
+    background-color: rgb(240, 248, 255, 0.5);
+  }
+
   img {
     width: 5rem;
   }
 
   .remove-btn {
+    position: absolute;
     background-color: #c71515;
+    right: -1rem;
+    padding: 5px 10px;
+    top: -0.5rem;
   }
 }

@@ -181,6 +181,13 @@ input[type="file"] {
   font-size: 18px;
 }
 
+.container {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  padding: 2rem;
+}
+
 @media (max-width: 600px) {
   .wedding-container {
     padding: 20px 15px;

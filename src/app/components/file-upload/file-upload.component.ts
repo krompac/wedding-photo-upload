@@ -1,13 +1,17 @@
 // src/app/components/wedding-photo-upload/wedding-photo-upload.component.ts
 import { HttpClient, HttpEventType } from '@angular/common/http';
-import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  DestroyRef,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PreviewImgComponent } from '../preview-img/preview-img.component';
 
-type PhotoFile = {
-  file: File;
-  src: string;
-};
+import { PhotoFile } from '../../model/photo-file.model';
 
 @Component({
   selector: 'app-wedding-photo-upload',
@@ -23,22 +27,26 @@ export class WeddingPhotoUploadComponent {
 
   readonly selectedFile = signal<File | null>(null);
   readonly isDragging = signal(false);
-  readonly uploading = signal(false);
-  readonly uploadProgress = signal(0);
-  readonly uploadSuccess = signal(false);
   readonly errorMessage = signal('');
 
   readonly files = signal<PhotoFile[]>([]);
+
+  readonly uploading = computed(() =>
+    this.files().some((file) => file.state === 'uploading'),
+  );
+
+  readonly uploadSuccess = computed(() => {
+    const files = this.files();
+
+    return files.length > 0 && files.every((file) => file.state === 'success');
+  });
 
   constructor() {
     effect(() => {});
   }
 
   onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-
+    const loadFile = (file: File) => {
       // Check if file is an image
       if (!file.type.match('image.*')) {
         this.errorMessage.set(
@@ -67,61 +75,22 @@ export class WeddingPhotoUploadComponent {
       };
 
       reader.readAsDataURL(file);
+    };
+
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      Array.from(input.files).forEach((file) => loadFile(file));
     }
   }
 
-  uploadFile(): void {
-    const selectedFile = this.files().at(0);
-
-    if (!selectedFile) return;
-
-    this.uploading.set(true);
-    this.uploadProgress.set(0);
-    this.uploadSuccess.set(false);
+  uploadFiles(): void {
     this.errorMessage.set('');
-
-    // Create FormData to send the file
-    const formData = new FormData();
-    formData.append('file', selectedFile.file);
-    formData.append(
-      'filename',
-      `vjencanje_foto_${Date.now()}_${selectedFile.file.name}`,
-    );
-
-    // Send the file to our server endpoint
-    this.http
-      .post<any>('/api/drive-upload', formData, {
-        reportProgress: true,
-        observe: 'events',
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (event) => {
-          if (event.type === HttpEventType.UploadProgress && event.total) {
-            this.uploadProgress.set(
-              Math.round((event.loaded / event.total) * 100),
-            );
-          } else if (event.type === HttpEventType.Response) {
-            this.uploading.set(false);
-            this.uploadSuccess.set(true);
-          }
-        },
-        error: (error) => {
-          this.uploading.set(false);
-          this.errorMessage.set(
-            'Učitavanje nije uspjelo. Molimo pokušajte ponovno.',
-          );
-          console.error('Error uploading file:', error);
-        },
-      });
+    this.files().forEach((file) => this.uploadFile(file));
   }
 
   resetForm(): void {
-    this.selectedFile.set(null);
-    this.uploading.set(false);
-    this.uploadProgress.set(0);
-    this.uploadSuccess.set(false);
     this.errorMessage.set('');
+    this.files.set([]);
   }
 
   removePhotoFile(index: number): void {
@@ -134,5 +103,48 @@ export class WeddingPhotoUploadComponent {
 
   private addPhotoFile(photoFile: PhotoFile): void {
     this.files.update((files) => [photoFile, ...files]);
+  }
+
+  private uploadFile(fileToUpload: PhotoFile): void {
+    // Create FormData to send the file
+    const formData = new FormData();
+    formData.append('file', fileToUpload.file);
+    formData.append(
+      'filename',
+      `vjencanje_foto_${Date.now()}_${fileToUpload.file.name}`,
+    );
+
+    // TODO: treba zapravo raditi za svaki file jedan request -> napraviti componentu koja enkapsulira i upload i choose stvari
+    //       tak da se za svaku more napraviti loading
+    //       i onda jedna wrapper componenta koja bude imala count i završni all is finished!
+
+    // Send the file to our server endpoint
+    fileToUpload.state = 'uploading';
+
+    this.http
+      .post<any>('/api/drive-upload', formData, {
+        reportProgress: true,
+        observe: 'events',
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (event) => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            // TODO: možda poslije tu napraviti neku upload progress logiku
+          } else if (event.type === HttpEventType.Response) {
+            fileToUpload.state = 'success';
+          }
+        },
+        error: (error) => {
+          fileToUpload.state = 'error';
+          this.errorMessage.set(
+            'Učitavanje nije uspjelo. Molimo pokušajte ponovno.',
+          );
+          console.error(
+            `Error uploading file ${fileToUpload.file.name}:`,
+            error,
+          );
+        },
+      });
   }
 }

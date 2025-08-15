@@ -1,2 +1,7 @@
-<img [src]="src()" />
-<button class="remove-btn">X</button>
+@let photoFile = file();
+
+<img [src]="photoFile.src" />
+
+@if (!photoFile.state) {
+  <button class="remove-btn">X</button>
+}

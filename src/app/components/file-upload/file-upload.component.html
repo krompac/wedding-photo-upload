@@ -49,20 +49,16 @@
       </div>
     }
     <div class="container">
-      @for (item of files(); track item.src; let index = $index) {
-        <app-preview-img [src]="item.src" (remove)="removePhotoFile(index)" />
+      @for (file of files(); track file.src; let index = $index) {
+        <app-preview-img [file]="file" (remove)="removePhotoFile(index)" />
       }
     </div>
     @if (files().length > 0) {
-      <button (click)="uploadFile()">Upload</button>
+      <button (click)="uploadFiles()">Prenesi</button>
     }
     @if (uploading()) {
       <div class="upload-status">
-        <p>Učitavanje: {{ selectedFile()?.name }}</p>
-        <div class="progress-bar">
-          <div class="progress" [style.width.%]="uploadProgress()"></div>
-        </div>
-        <p class="progress-text">{{ uploadProgress() }}%</p>
+        <p>Učitavanje</p>
       </div>
     }
     @if (uploadSuccess()) {
