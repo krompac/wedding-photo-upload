@@ -1,3 +1,4 @@
+import { ErrorReporting } from '@google-cloud/error-reporting';
 import { google } from 'googleapis';
 import { defineEventHandler, readMultipartFormData } from 'h3';
 import { Readable } from 'stream';
@@ -8,7 +9,7 @@ const credentials = {
   private_key_id: process.env['GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY_ID'],
   private_key: process.env['GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY']?.replace(
     /\\n/g,
-    '\n'
+    '\n',
   ),
   client_email: process.env['GOOGLE_SERVICE_ACCOUNT_CLIENT_EMAIL'],
   client_id: process.env['GOOGLE_SERVICE_ACCOUNT_CLIENT_ID'],
@@ -31,11 +32,16 @@ const auth = new google.auth.JWT(
   credentials.client_email,
   undefined,
   credentials.private_key,
-  ['https://www.googleapis.com/auth/drive']
+  ['https://www.googleapis.com/auth/drive'],
 );
 
 // Create Drive client
 const drive = google.drive({ version: 'v3', auth });
+
+const errorReporting = new ErrorReporting({
+  credentials,
+  reportMode: 'always',
+});
 
 // Folder ID where files will be uploaded
 const FOLDER_ID = process.env['GOOGLE_DRIVE_FOLDER_ID'];
@@ -102,6 +108,8 @@ export default defineEventHandler(async (event) => {
     console.error('Error uploading file:', error);
     console.error('Folder ID being used:', FOLDER_ID);
     console.error('Service account email:', auth.email);
+
+    errorReporting.report(error);
 
     return {
       status: 500,
