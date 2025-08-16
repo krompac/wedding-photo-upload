@@ -47,6 +47,7 @@ const errorReporting = new ErrorReporting({
 const FOLDER_ID = process.env['GOOGLE_DRIVE_FOLDER_ID'];
 
 export default defineEventHandler(async (event) => {
+  errorReporting.report('jel ovo radi općenito?');
   try {
     // Parse the multipart form data (file upload)
     const data = await readMultipartFormData(event);
