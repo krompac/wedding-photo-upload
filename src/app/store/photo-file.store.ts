@@ -18,8 +18,8 @@ const PhotoFileStore = signalStore(
     removePhotoFile(id: EntityId): void {
       patchState(store, removeEntity(id));
     },
-    updateStatus(id: EntityId, state: PhotoFile['state']): void {
-      patchState(store, updateEntity({ id, changes: { state } }));
+    updateStatus(id: EntityId, status: PhotoFile['status']): void {
+      patchState(store, updateEntity({ id, changes: { status } }));
     },
     resetPhotos(): void {
       patchState(store, setAllEntities([] as PhotoFile[]));

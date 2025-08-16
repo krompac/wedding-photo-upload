@@ -48,11 +48,7 @@ const FOLDER_ID = process.env['GOOGLE_DRIVE_FOLDER_ID'];
 export default defineEventHandler(async (event) => {
   try {
     // Read JSON body instead of multipart form data
-    console.log('am I here');
-
-    const { fileName, mimeType, fileSize } = await readBody(event);
-
-    console.log('or here');
+    const { fileName, mimeType } = await readBody(event);
 
     if (!fileName) {
       return {

@@ -41,13 +41,13 @@ export class WeddingPhotoUploadComponent {
   readonly files = this.store.entities;
 
   readonly uploading = computed(() =>
-    this.files().some((file) => file.state === 'uploading'),
+    this.files().some((file) => file.status === 'uploading'),
   );
 
   readonly uploadSuccess = computed(() => {
     const files = this.files();
 
-    return files.length > 0 && files.every((file) => file.state === 'success');
+    return files.length > 0 && files.every((file) => file.status === 'success');
   });
 
   onFileSelected(event: Event): void {
@@ -104,14 +104,6 @@ export class WeddingPhotoUploadComponent {
   }
 
   private uploadFile(fileToUpload: PhotoFile): void {
-    // Create FormData to send the file
-    const formData = new FormData();
-    formData.append('file', fileToUpload.file);
-    formData.append(
-      'filename',
-      `vjencanje_foto_${Date.now()}_${fileToUpload.file.name}`,
-    );
-
     // TODO: treba zapravo raditi za svaki file jedan request -> napraviti componentu koja enkapsulira i upload i choose stvari
     //       tak da se za svaku more napraviti loading
     //       i onda jedna wrapper componenta koja bude imala count i završni all is finished!
@@ -121,10 +113,10 @@ export class WeddingPhotoUploadComponent {
     const file = fileToUpload.file;
     const fileName = `vjencanje_foto_${Date.now()}_${fileToUpload.file.name}`;
 
-    const updateState = (state: PhotoFile['state']) =>
-      this.store.updateStatus(id, state);
+    const updatestatus = (status: PhotoFile['status']) =>
+      this.store.updateStatus(id, status);
 
-    updateState('uploading');
+    updatestatus('uploading');
 
     this.http
       .post<{ status: number; body: UrlResponse }>('/api/drive-upload', {
@@ -145,12 +137,12 @@ export class WeddingPhotoUploadComponent {
       )
       .subscribe({
         next: (event) => {
-          updateState('success');
+          updatestatus('success');
 
-          console.log(event.body);
+          console.log(event);
         },
         error: (error) => {
-          updateState('error');
+          updatestatus('error');
           this.errorMessage.set(
             'Učitavanje nije uspjelo. Molimo pokušajte ponovno.',
           );

@@ -2,5 +2,5 @@ export type PhotoFile = {
   id: string;
   file: File;
   src: string;
-  state?: 'uploading' | 'success' | 'error';
+  status?: 'uploading' | 'success' | 'error';
 };

@@ -12,7 +12,7 @@ import { PhotoFile } from 'src/app/model/photo-file.model';
 export class PreviewImgComponent {
   readonly file = input.required<PhotoFile>();
 
-  readonly uploading = computed(() => this.file().state === 'uploading');
+  readonly uploading = computed(() => this.file().status === 'uploading');
 
   readonly remove = output<void>();
 
