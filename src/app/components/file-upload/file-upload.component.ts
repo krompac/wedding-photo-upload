@@ -1,5 +1,5 @@
 // src/app/components/wedding-photo-upload/wedding-photo-upload.component.ts
-import { HttpClient, HttpEventType } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PreviewImgComponent } from '../preview-img/preview-img.component';
@@ -8,7 +8,19 @@ import { EntityId } from '@ngrx/signals/entities';
 import { PhotoFile } from '../../model/photo-file.model';
 import PhotoFileStore from '../../store/photo-file.store';
 
+import { catchError, map, Observable, of, switchMap } from 'rxjs';
 import ShortUniqueId from 'short-unique-id';
+
+type UrlResponse = {
+  success: boolean;
+  fileId: string;
+  fileName: string;
+  uploadUrl: string;
+  accessToken: string;
+  expiresAt: number;
+  mimeType: string;
+  message: string;
+};
 
 @Component({
   selector: 'app-wedding-photo-upload',
@@ -106,6 +118,8 @@ export class WeddingPhotoUploadComponent {
 
     // Send the file to our server endpoint
     const id = fileToUpload.id;
+    const file = fileToUpload.file;
+    const fileName = `vjencanje_foto_${Date.now()}_${fileToUpload.file.name}`;
 
     const updateState = (state: PhotoFile['state']) =>
       this.store.updateStatus(id, state);
@@ -113,18 +127,27 @@ export class WeddingPhotoUploadComponent {
     updateState('uploading');
 
     this.http
-      .post<any>('/api/drive-upload', formData, {
-        reportProgress: true,
-        observe: 'events',
+      .post<{ status: number; body: UrlResponse }>('/api/drive-upload', {
+        fileName,
+        mimeType: file.type,
+        fileSize: file.size,
       })
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap((res) =>
+          this.patchFile(
+            file,
+            res.body.uploadUrl,
+            res.body.accessToken,
+            res.body.fileId,
+          ),
+        ),
+      )
       .subscribe({
         next: (event) => {
-          if (event.type === HttpEventType.UploadProgress && event.total) {
-            // TODO: možda poslije tu napraviti neku upload progress logiku
-          } else if (event.type === HttpEventType.Response) {
-            updateState('success');
-          }
+          updateState('success');
+
+          console.log(event.body);
         },
         error: (error) => {
           updateState('error');
@@ -137,5 +160,32 @@ export class WeddingPhotoUploadComponent {
           );
         },
       });
+  }
+
+  private patchFile(
+    file: File,
+    uploadUrl: string,
+    accessToken: string,
+    fileId: string,
+  ): Observable<any> {
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': file.type,
+    });
+
+    return this.http.patch(uploadUrl, file, { headers }).pipe(
+      map(() => ({
+        fileName: file.name,
+        status: 'completed' as const,
+        fileId,
+      })),
+      catchError((error) =>
+        of({
+          fileName: file.name,
+          status: 'error' as const,
+          error: `Upload failed: ${error.status || error.message}`,
+        }),
+      ),
+    );
   }
 }

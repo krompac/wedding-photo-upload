@@ -1,7 +1,6 @@
 import { ErrorReporting } from '@google-cloud/error-reporting';
 import { google } from 'googleapis';
-import { defineEventHandler, readMultipartFormData } from 'h3';
-import { Readable } from 'stream';
+import { defineEventHandler, readBody } from 'h3';
 
 const credentials = {
   type: process.env['GOOGLE_SERVICE_ACCOUNT_TYPE'] || 'service_account',
@@ -47,75 +46,61 @@ const errorReporting = new ErrorReporting({
 const FOLDER_ID = process.env['GOOGLE_DRIVE_FOLDER_ID'];
 
 export default defineEventHandler(async (event) => {
-  errorReporting.report('jel ovo radi općenito?');
   try {
-    // Parse the multipart form data (file upload)
-    const data = await readMultipartFormData(event);
+    // Read JSON body instead of multipart form data
+    console.log('am I here');
 
-    if (!data || data.length === 0) {
+    const { fileName, mimeType, fileSize } = await readBody(event);
+
+    console.log('or here');
+
+    if (!fileName) {
       return {
         status: 400,
-        body: { error: 'No file uploaded' },
+        body: { error: 'fileName is required' },
       };
     }
 
-    // Get the file data from the form
-    const fileData = data.find((part) => part.name === 'file');
-
-    if (!fileData) {
-      return {
-        status: 400,
-        body: { error: 'File part not found in upload' },
-      };
+    if (!FOLDER_ID) {
+      return { status: 500, body: { error: 'Problem with folder config' } };
     }
 
-    // Get filename from the form or use a default name
-    const filenameData = data.find((part) => part.name === 'filename');
-    const filename = filenameData
-      ? filenameData.data.toString()
-      : fileData.filename || 'uploaded-file';
-
-    // Create file metadata
-    const fileMetadata = {
-      name: filename,
-      parents: [FOLDER_ID],
-    };
-
-    // Convert buffer to stream
-    const fileStream = new Readable();
-    fileStream.push(fileData.data);
-    fileStream.push(null);
-
-    // Upload the file directly to Google Drive
-    const response = await drive.files.create({
-      requestBody: fileMetadata as any,
-      media: {
-        mimeType: fileData.type || 'application/octet-stream',
-        body: fileStream,
-      },
-      fields: 'id,name,webViewLink',
+    const driveFile = await drive.files.create({
+      requestBody: { name: fileName, parents: [FOLDER_ID] },
+      fields: 'id,name',
     });
+
+    const accessToken = await auth.getAccessToken();
+
+    if (!accessToken.token) {
+      throw new Error('Failed to get access token');
+    }
+
+    const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${driveFile.data.id}?uploadType=media`;
 
     return {
       status: 200,
       body: {
-        fileId: response.data.id,
-        fileName: response.data.name,
-        viewLink: response.data.webViewLink,
-        message: 'File uploaded successfully',
+        success: true,
+        fileId: driveFile.data.id,
+        fileName: driveFile.data.name,
+        uploadUrl: uploadUrl,
+        accessToken: accessToken.token,
+        expiresAt: Date.now() + 50 * 60 * 1000, // 50 minutes (tokens usually last 1 hour)
+        mimeType: mimeType || 'application/octet-stream',
+        message: 'Upload URL generated successfully',
       },
     };
   } catch (error: any) {
-    console.error('Error uploading file:', error);
+    console.error('Error generating upload URL:', error);
     console.error('Folder ID being used:', FOLDER_ID);
     console.error('Service account email:', auth.email);
-
     errorReporting.report(error);
 
     return {
       status: 500,
       body: {
-        error: 'Failed to upload file',
+        error: 'Failed to generate upload URL',
         details: error.message,
       },
     };
