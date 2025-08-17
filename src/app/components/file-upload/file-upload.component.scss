@@ -186,6 +186,7 @@ input[type="file"] {
   gap: 1.5rem;
   justify-content: center;
   padding: 2rem;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 600px) {
