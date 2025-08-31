@@ -1,0 +1,200 @@
+<div class="mx-auto text-primary bg-transparent max-w-[1400px] p-5">
+  <!-- Header -->
+  <div class="mb-10 text-center">
+    <h1 class="text-[42px] font-light m-0 text-heading">Image Gallery</h1>
+    <h2 class="text-2xl font-normal my-2.5 text-accent">
+      Select and organize your photos
+    </h2>
+  </div>
+
+  <!-- Filter Section -->
+  <div class="mb-8 p-5 bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.1)]">
+    <div class="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4 mb-4">
+      <div class="flex flex-col gap-2">
+        <label for="tagFilter" class="text-base text-primary font-medium"
+          >Filter by tags:</label
+        >
+        <input
+          id="tagFilter"
+          type="text"
+          [(ngModel)]="filterTag"
+          (input)="updateTagFilter($event)"
+          placeholder="Enter tag to filter..."
+          class="py-2 px-4 border-2 border-light rounded-[25px] text-sm outline-none transition-colors duration-300 focus:border-accent"
+        />
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="folderFilter" class="text-base text-primary font-medium"
+          >Filter by folder:</label
+        >
+        <input
+          id="folderFilter"
+          type="text"
+          [(ngModel)]="filterFolder"
+          (input)="updateFolderFilter($event)"
+          placeholder="Enter folder to filter..."
+          class="py-2 px-4 border-2 border-light rounded-[25px] text-sm outline-none transition-colors duration-300 focus:border-accent"
+        />
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="descFilter" class="text-base text-primary font-medium"
+          >Filter by description:</label
+        >
+        <input
+          id="descFilter"
+          type="text"
+          [(ngModel)]="filterDescription"
+          (input)="updateDescriptionFilter($event)"
+          placeholder="Search description..."
+          class="py-2 px-4 border-2 border-light rounded-[25px] text-sm outline-none transition-colors duration-300 focus:border-accent"
+        />
+      </div>
+
+      <div class="flex items-end">
+        <button
+          (click)="clearAllFilters()"
+          class="py-2 px-4 bg-accent text-white border-none rounded-[20px] text-sm cursor-pointer transition-all duration-300 hover:bg-accent-hover"
+          [class.hidden]="!hasActiveFilters()"
+        >
+          Clear All Filters
+        </button>
+      </div>
+    </div>
+
+    <!-- Selection Info -->
+    <div class="flex justify-between items-center flex-wrap gap-2.5">
+      <span class="text-accent text-base">
+        {{ selectedCount() }} of {{ filteredImages().length }} selected
+      </span>
+      <div class="action-buttons">
+        <button
+          (click)="selectAll()"
+          class="py-2 px-4 bg-transparent text-accent border-2 border-accent rounded-[20px] text-sm cursor-pointer transition-all duration-300 hover:bg-accent hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          [disabled]="filteredImages().length === 0"
+        >
+          {{ allSelected() ? "Deselect All" : "Select All" }}
+        </button>
+        <button
+          (click)="moveToFolder()"
+          class="py-2 px-4 bg-transparent text-heading border-2 border-heading rounded-[20px] text-sm cursor-pointer transition-all duration-300 hover:bg-heading hover:text-white disabled:opacity-50 disabled:cursor-not-allowed ml-2.5"
+          [disabled]="selectedCount() === 0"
+        >
+          Move to Folder
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Grid -->
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-5 py-5">
+    @for (image of filteredImages(); track image.id) {
+      <div
+        class="bg-white rounded-xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.1)] cursor-pointer transition-all duration-300 relative border-[3px] border-transparent hover:-translate-y-1 hover:shadow-[0_8px_25px_rgba(0,0,0,0.15)]"
+        [class.border-accent]="image.selected"
+        [class.shadow-[0_8px_25px_rgba(141,110,99,0.3)]]="image.selected"
+        (click)="toggleSelection(image.id)"
+      >
+        <!-- Selection Overlay -->
+        <div
+          class="absolute top-0 left-0 right-0 bottom-0 bg-[rgba(141,110,99,0.2)] z-[2] transition-opacity duration-300"
+          [class.opacity-0]="!image.selected"
+          [class.opacity-100]="image.selected"
+        >
+          <div
+            class="absolute top-4 right-4 w-10 h-10 bg-accent rounded-full flex items-center justify-center"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M20 6L9 17L4 12"
+                stroke="white"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Image -->
+        <div class="relative h-[200px] overflow-hidden">
+          <img
+            [src]="image.url"
+            [alt]="image.name"
+            class="w-full h-full object-scale-down transition-transform duration-300 hover:scale-105"
+            loading="lazy"
+          />
+        </div>
+
+        <!-- Card Footer -->
+        <div class="p-4">
+          <h3 class="text-lg font-normal m-0 mb-2.5 text-primary text-left">
+            {{ image.name }}
+          </h3>
+
+          <!-- Folders -->
+          @if (image.folders.length > 0) {
+            <div class="flex items-center gap-2 mb-2">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                class="text-accent flex-shrink-0"
+              >
+                <path
+                  d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              <div class="flex flex-wrap gap-1">
+                @for (folder of image.folders; track folder) {
+                  <span
+                    class="bg-pill-light text-pill-green py-1 px-2 rounded-xl text-[11px] font-semibold inline-flex items-center gap-1"
+                    >{{ folder }}</span
+                  >
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Tags -->
+          @if (image.tags.length > 0) {
+            <div class="flex flex-wrap gap-1.5 mb-2">
+              @for (tag of image.tags; track tag) {
+                <span
+                  class="bg-tag-bg text-accent py-1 px-3 rounded-2xl text-xs font-medium"
+                  >{{ tag }}</span
+                >
+              }
+            </div>
+          }
+
+          <!-- Description -->
+          @if (image.description) {
+            <!-- <p class="text-sm text-accent-hover leading-[1.4] mt-2 mb-0 italic">
+              {{ image.description }}
+            </p> -->
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Empty State -->
+    @if (filteredImages().length === 0 && hasActiveFilters()) {
+      <div class="col-span-full text-center py-[60px] px-5 text-empty">
+        <p class="text-lg mb-5">No images found matching current filters</p>
+        <button
+          (click)="clearAllFilters()"
+          class="inline-block py-3 px-6 bg-accent text-white rounded-[30px] cursor-pointer text-base transition-all duration-300 border-none font-sans hover:bg-accent-hover hover:-translate-y-0.5"
+        >
+          Clear All Filters
+        </button>
+      </div>
+    }
+  </div>
+</div>

@@ -1,11 +1,13 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Auth, user } from '@angular/fire/auth';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet],
-  template: `<router-outlet />`,
+  template: ` <router-outlet />`,
   styles: `
     :host {
       text-align: center;
@@ -13,4 +15,12 @@ import { RouterOutlet } from '@angular/router';
     }
   `,
 })
-export class AppComponent {}
+export class AppComponent {
+  readonly auth = inject(Auth);
+
+  constructor() {
+    user(this.auth)
+      .pipe(takeUntilDestroyed())
+      .subscribe((user) => console.log(user));
+  }
+}

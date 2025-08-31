@@ -54,7 +54,13 @@
       }
     </div>
     @if (files().length > 0 && !uploadSuccess()) {
-      <button (click)="uploadFiles()" [disabled]="uploading()">Prenesi</button>
+      <button
+        class="upload-btn"
+        (click)="uploadFiles()"
+        [disabled]="uploading()"
+      >
+        Prenesi
+      </button>
     }
     @if (uploading()) {
       <div class="upload-status">

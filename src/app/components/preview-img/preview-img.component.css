@@ -1,14 +1,6 @@
 :host {
   position: relative;
 
-  &.uploading::after {
-    content: "Uploading";
-    display: block;
-    position: absolute;
-    inset: 0;
-    background-color: rgb(240, 248, 255, 0.5);
-  }
-
   img {
     width: 5rem;
     object-position: 50% 50%;
@@ -22,4 +14,12 @@
     padding: 5px 10px;
     top: -0.5rem;
   }
+}
+
+:host.uploading::after {
+  content: "Uploading";
+  display: block;
+  position: absolute;
+  inset: 0;
+  background-color: rgb(240, 248, 255, 0.5);
 }

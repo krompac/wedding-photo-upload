@@ -7,6 +7,6 @@ import { WeddingPhotoUploadComponent } from '../components/file-upload/file-uplo
   standalone: true,
   imports: [WeddingPhotoUploadComponent],
   templateUrl: 'index-page.component.html',
-  styleUrl: './index-page.component.scss',
+  styleUrl: './index-page.component.css',
 })
 export default class WeddingPhotosPage {}

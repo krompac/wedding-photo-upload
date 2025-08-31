@@ -4,7 +4,7 @@ import { PhotoFile } from 'src/app/model/photo-file.model';
 @Component({
   selector: 'app-preview-img',
   templateUrl: 'preview-img.component.html',
-  styleUrl: 'preview-img.component.scss',
+  styleUrl: 'preview-img.component.css',
   host: {
     '[class.uploading]': 'uploading()',
   },

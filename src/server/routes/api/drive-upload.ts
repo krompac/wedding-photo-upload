@@ -1,6 +1,6 @@
 import { ErrorReporting } from '@google-cloud/error-reporting';
 import { google } from 'googleapis';
-import { defineEventHandler, readBody } from 'h3';
+import { defineEventHandler, EventHandlerRequest, H3Event, readBody } from 'h3';
 
 const credentials = {
   type: process.env['GOOGLE_SERVICE_ACCOUNT_TYPE'] || 'service_account',
@@ -46,6 +46,20 @@ const errorReporting = new ErrorReporting({
 const FOLDER_ID = process.env['GOOGLE_DRIVE_FOLDER_ID'];
 
 export default defineEventHandler(async (event) => {
+  switch (event.method) {
+    case 'GET':
+    case 'HEAD':
+    case 'PATCH':
+    case 'POST':
+      return await handlePost(event);
+    case 'PUT':
+    case 'DELETE':
+    default:
+      return;
+  }
+});
+
+const handlePost = async (event: H3Event<EventHandlerRequest>) => {
   try {
     // Read JSON body instead of multipart form data
     const { fileName, mimeType } = await readBody(event);
@@ -101,4 +115,4 @@ export default defineEventHandler(async (event) => {
       },
     };
   }
-});
+};

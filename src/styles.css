@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #5d4037;
+  --color-heading: #795548;
+  --color-accent: #8d6e63;
+  --color-accent-hover: #6d4c41;
+  --color-light: #d7ccc8;
+  --color-pill-light: #e8f5e8;
+  --color-pill-green: #2e7d32;
+  --color-tag-bg: #efebe9;
+  --color-empty: #a1887f;
+  --color-error: #e57373;
+  --color-error-border: #ffcdd2;
+  --color-error-bg: #ffebee;
+}
+
+html {
+  font-family:
+    "Cormorant Garamond", "Playfair Display", "Times New Roman", serif;
+}
