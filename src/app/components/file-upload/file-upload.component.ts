@@ -1,4 +1,3 @@
-// src/app/components/wedding-photo-upload/wedding-photo-upload.component.ts
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';

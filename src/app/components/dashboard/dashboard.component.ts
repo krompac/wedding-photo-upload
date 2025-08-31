@@ -15,7 +15,6 @@ export interface ImageItem {
   selector: 'app-dashboard',
   imports: [FormsModule],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.css',
 })
 export class DashboardComponent {
   // Sample data - replace with your actual data source
