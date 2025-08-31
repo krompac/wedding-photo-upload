@@ -14,9 +14,9 @@ import { getAuth, provideAuth } from '@angular/fire/auth';
 import { provideClientHydration } from '@angular/platform-browser';
 
 const options: FirebaseOptions = {
-  apiKey: 'AIzaSyDl9aIkr467f4kiu4BONK6DV2ut1C0z7v8',
-  projectId: 'wedding-upload-valsimot',
-  messagingSenderId: '954841700391',
+  apiKey: process.env['FIREBASE_API_KEY'],
+  projectId: process.env['FIREBASE_PROJECT_ID'],
+  messagingSenderId: process.env['FIREBASE_SENDER_ID'],
 };
 
 export const appConfig: ApplicationConfig = {
