@@ -21,6 +21,8 @@ export class AppComponent {
   constructor() {
     user(this.auth)
       .pipe(takeUntilDestroyed())
-      .subscribe((user) => console.log(user));
+      .subscribe((user) =>
+        user !== null ? console.log((user as any)['accessToken']) : {},
+      );
   }
 }

@@ -1,15 +1,11 @@
-import { Component, computed, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { Auth, user } from '@angular/fire/auth';
 import { FormsModule } from '@angular/forms';
-
-export interface ImageItem {
-  id: string;
-  url: string;
-  name: string;
-  selected: boolean;
-  tags: string[];
-  folders: string[];
-  description: string;
-}
+import { DomSanitizer } from '@angular/platform-browser';
+import { map } from 'rxjs';
+import { DriveFetch, DriveFile } from 'src/app/model/drive-fetch.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -18,63 +14,35 @@ export interface ImageItem {
 })
 export class DashboardComponent {
   // Sample data - replace with your actual data source
-  private images = signal<ImageItem[]>([
-    {
-      id: '1',
-      url: 'https://letsenhance.io/static/73136da51c245e80edc6ccfe44888a99/396e9/MainBefore.jpg',
-      name: 'Summer Sunset',
-      selected: false,
-      tags: ['nature', 'sunset', 'outdoor'],
-      folders: ['Vacation 2024', 'Summer'],
-      description:
-        'Beautiful sunset captured during our summer vacation at the beach',
-    },
-    {
-      id: '2',
-      url: 'https://img.freepik.com/free-photo/closeup-scarlet-macaw-from-side-view-scarlet-macaw-closeup-head_488145-3540.jpg',
-      name: 'Mountain View',
-      selected: false,
-      tags: ['nature', 'mountain', 'landscape'],
-      folders: ['Hiking Trip'],
-      description: 'Stunning mountain landscape from our hiking adventure',
-    },
-    {
-      id: '3',
-      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Jpeg_thumb_artifacts_test.jpg/1200px-Jpeg_thumb_artifacts_test.jpg',
-      name: 'City Lights',
-      selected: false,
-      tags: ['city', 'night', 'urban'],
-      folders: ['Work Travel', 'Business'],
-      description: 'City skyline at night during business trip',
-    },
-    {
-      id: '4',
-      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Jpeg_thumb_artifacts_test.jpg/1200px-Jpeg_thumb_artifacts_test.jpg',
-      name: 'Beach Walk',
-      selected: false,
-      tags: ['beach', 'sunset', 'ocean'],
-      folders: ['Vacation 2024'],
-      description: 'Peaceful evening walk along the shore',
-    },
-    {
-      id: '5',
-      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Jpeg_thumb_artifacts_test.jpg/1200px-Jpeg_thumb_artifacts_test.jpg',
-      name: 'Forest Path',
-      selected: false,
-      tags: ['nature', 'forest', 'hiking'],
-      folders: ['Hiking Trip', 'Nature'],
-      description: 'Winding path through the dense forest',
-    },
-    {
-      id: '6',
-      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Jpeg_thumb_artifacts_test.jpg/1200px-Jpeg_thumb_artifacts_test.jpg',
-      name: 'Urban Architecture',
-      selected: false,
-      tags: ['city', 'architecture', 'urban'],
-      folders: ['Work Travel'],
-      description: 'Modern architectural design in downtown area',
-    },
-  ]);
+  private images = signal<DriveFile[]>([]);
+
+  readonly http = inject(HttpClient);
+
+  readonly tags = ['tag 1', 'tag 2'];
+
+  readonly domSanitizer = inject(DomSanitizer);
+
+  readonly auth = inject(Auth);
+
+  readonly token = toSignal(
+    user(this.auth).pipe(
+      takeUntilDestroyed(),
+      map((user) => {
+        if (!user) {
+          return null;
+        }
+
+        return (user as any)['accessToken'] as string;
+      }),
+    ),
+  );
+
+  constructor() {
+    this.http
+      .get<DriveFetch>('/api/drive-upload')
+      .pipe(takeUntilDestroyed())
+      .subscribe((fetch) => this.images.set(fetch.files));
+  }
 
   filterTag = signal<string>('');
   filterFolder = signal<string>('');
@@ -89,16 +57,14 @@ export class DashboardComponent {
     return this.images().filter((img) => {
       const matchesTag =
         !tagFilter ||
-        img.tags.some((tag) => tag.toLowerCase().includes(tagFilter));
+        this.tags.some((tag) => tag.toLowerCase().includes(tagFilter));
       const matchesFolder =
         !folderFilter ||
-        img.folders.some((folder) =>
+        img.parents.some((folder) =>
           folder.toLowerCase().includes(folderFilter),
         );
-      const matchesDesc =
-        !descFilter || img.description.toLowerCase().includes(descFilter);
 
-      return matchesTag && matchesFolder && matchesDesc;
+      return matchesTag && matchesFolder;
     });
   });
 
@@ -110,6 +76,10 @@ export class DashboardComponent {
     const filtered = this.filteredImages();
     return filtered.length > 0 && filtered.every((img) => img.selected);
   });
+
+  transform(url: string) {
+    return this.domSanitizer.bypassSecurityTrustResourceUrl(url);
+  }
 
   updateTagFilter(event: any) {
     this.filterTag.set(event.target.value);
@@ -162,12 +132,12 @@ export class DashboardComponent {
   }
 
   // Method to get selected images (for your TypeScript logic)
-  getSelectedImages(): ImageItem[] {
+  getSelectedImages(): DriveFile[] {
     return this.images().filter((img) => img.selected);
   }
 
   // Method to update images (for your TypeScript logic)
-  updateImages(newImages: ImageItem[]) {
+  updateImages(newImages: DriveFile[]) {
     this.images.set(newImages);
   }
 }

@@ -1,6 +1,12 @@
 import { ErrorReporting } from '@google-cloud/error-reporting';
 import { google } from 'googleapis';
-import { defineEventHandler, EventHandlerRequest, H3Event, readBody } from 'h3';
+import {
+  createError,
+  defineEventHandler,
+  EventHandlerRequest,
+  H3Event,
+  readBody,
+} from 'h3';
 
 const credentials = {
   type: process.env['GOOGLE_SERVICE_ACCOUNT_TYPE'] || 'service_account',
@@ -48,6 +54,38 @@ const FOLDER_ID = process.env['GOOGLE_DRIVE_FOLDER_ID'];
 export default defineEventHandler(async (event) => {
   switch (event.method) {
     case 'GET':
+      try {
+        const foldersResponse = await drive.files.list({
+          q: `'${FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+          fields: 'files(id, name, parents)',
+          pageSize: 1000,
+        });
+
+        const filesResponse = await drive.files.list({
+          q: `'${FOLDER_ID}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false`,
+          fields:
+            'nextPageToken, files(id, name, mimeType, size, parents, thumbnailLink)',
+          pageSize: 50, // Smaller page size for files
+        });
+
+        return {
+          folders: foldersResponse.data.files || [],
+          files: filesResponse.data.files || [],
+          nextPageToken: filesResponse.data.nextPageToken,
+          summary: {
+            totalFolders: foldersResponse.data.files?.length || 0,
+            currentPageFiles: filesResponse.data.files?.length || 0,
+            hasMoreFiles: !!filesResponse.data.nextPageToken,
+          },
+        };
+      } catch (error) {
+        console.error('Error fetching files:', error);
+        errorReporting.report(error);
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to fetch files from Google Drive',
+        });
+      }
     case 'HEAD':
     case 'PATCH':
     case 'POST':

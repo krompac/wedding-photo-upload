@@ -17,6 +17,8 @@ const options: FirebaseOptions = {
   apiKey: import.meta.env['VITE_FIREBASE_API_KEY'],
   projectId: import.meta.env['VITE_FIREBASE_PROJECT_ID'],
   messagingSenderId: import.meta.env['VITE_FIREBASE_SENDER_ID'],
+  authDomain: import.meta.env['VITE_FIREBASE_AUTH_DOMAIN'],
+  appId: import.meta.env['VITE_FIREBASE_APP_ID'],
 };
 
 export const appConfig: ApplicationConfig = {

@@ -38,20 +38,6 @@
         />
       </div>
 
-      <div class="flex flex-col gap-2">
-        <label for="descFilter" class="text-base text-primary font-medium"
-          >Filter by description:</label
-        >
-        <input
-          id="descFilter"
-          type="text"
-          [(ngModel)]="filterDescription"
-          (input)="updateDescriptionFilter($event)"
-          placeholder="Search description..."
-          class="py-2 px-4 border-2 border-light rounded-[25px] text-sm outline-none transition-colors duration-300 focus:border-accent"
-        />
-      </div>
-
       <div class="flex items-end">
         <button
           (click)="clearAllFilters()"
@@ -120,7 +106,7 @@
         <!-- Image -->
         <div class="relative h-[200px] overflow-hidden">
           <img
-            [src]="image.url"
+            [src]="image.thumbnailLink"
             [alt]="image.name"
             class="w-full h-full object-scale-down transition-transform duration-300 hover:scale-105"
             loading="lazy"
@@ -134,7 +120,7 @@
           </h3>
 
           <!-- Folders -->
-          @if (image.folders.length > 0) {
+          @if (image.parents.length > 0) {
             <div class="flex items-center gap-2 mb-2">
               <svg
                 width="16"
@@ -152,7 +138,7 @@
                 />
               </svg>
               <div class="flex flex-wrap gap-1">
-                @for (folder of image.folders; track folder) {
+                @for (folder of image.parents; track folder) {
                   <span
                     class="bg-pill-light text-pill-green py-1 px-2 rounded-xl text-[11px] font-semibold inline-flex items-center gap-1"
                     >{{ folder }}</span
@@ -163,22 +149,15 @@
           }
 
           <!-- Tags -->
-          @if (image.tags.length > 0) {
+          @if (tags.length > 0) {
             <div class="flex flex-wrap gap-1.5 mb-2">
-              @for (tag of image.tags; track tag) {
+              @for (tag of tags; track tag) {
                 <span
                   class="bg-tag-bg text-accent py-1 px-3 rounded-2xl text-xs font-medium"
                   >{{ tag }}</span
                 >
               }
             </div>
-          }
-
-          <!-- Description -->
-          @if (image.description) {
-            <!-- <p class="text-sm text-accent-hover leading-[1.4] mt-2 mb-0 italic">
-              {{ image.description }}
-            </p> -->
           }
         </div>
       </div>
