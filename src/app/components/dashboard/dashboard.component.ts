@@ -1,10 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { Auth, user } from '@angular/fire/auth';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { DomSanitizer } from '@angular/platform-browser';
-import { map } from 'rxjs';
 import { DriveFetch, DriveFile } from 'src/app/model/drive-fetch.model';
 
 @Component({
@@ -20,23 +17,6 @@ export class DashboardComponent {
 
   readonly tags = ['tag 1', 'tag 2'];
 
-  readonly domSanitizer = inject(DomSanitizer);
-
-  readonly auth = inject(Auth);
-
-  readonly token = toSignal(
-    user(this.auth).pipe(
-      takeUntilDestroyed(),
-      map((user) => {
-        if (!user) {
-          return null;
-        }
-
-        return (user as any)['accessToken'] as string;
-      }),
-    ),
-  );
-
   constructor() {
     this.http
       .get<DriveFetch>('/api/drive-upload')
@@ -46,13 +26,11 @@ export class DashboardComponent {
 
   filterTag = signal<string>('');
   filterFolder = signal<string>('');
-  filterDescription = signal<string>('');
 
   // Computed properties for reactive updates
   filteredImages = computed(() => {
     const tagFilter = this.filterTag().toLowerCase().trim();
     const folderFilter = this.filterFolder().toLowerCase().trim();
-    const descFilter = this.filterDescription().toLowerCase().trim();
 
     return this.images().filter((img) => {
       const matchesTag =
@@ -77,10 +55,6 @@ export class DashboardComponent {
     return filtered.length > 0 && filtered.every((img) => img.selected);
   });
 
-  transform(url: string) {
-    return this.domSanitizer.bypassSecurityTrustResourceUrl(url);
-  }
-
   updateTagFilter(event: any) {
     this.filterTag.set(event.target.value);
   }
@@ -89,22 +63,13 @@ export class DashboardComponent {
     this.filterFolder.set(event.target.value);
   }
 
-  updateDescriptionFilter(event: any) {
-    this.filterDescription.set(event.target.value);
-  }
-
   clearAllFilters() {
     this.filterTag.set('');
     this.filterFolder.set('');
-    this.filterDescription.set('');
   }
 
   hasActiveFilters(): boolean {
-    return !!(
-      this.filterTag() ||
-      this.filterFolder() ||
-      this.filterDescription()
-    );
+    return !!(this.filterTag() || this.filterFolder());
   }
 
   toggleSelection(imageId: string) {
