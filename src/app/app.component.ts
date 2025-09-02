@@ -1,6 +1,4 @@
-import { Component, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Auth, user } from '@angular/fire/auth';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
@@ -15,14 +13,4 @@ import { RouterOutlet } from '@angular/router';
     }
   `,
 })
-export class AppComponent {
-  readonly auth = inject(Auth);
-
-  constructor() {
-    user(this.auth)
-      .pipe(takeUntilDestroyed())
-      .subscribe((user) =>
-        user !== null ? console.log((user as any)['accessToken']) : {},
-      );
-  }
-}
+export class AppComponent {}

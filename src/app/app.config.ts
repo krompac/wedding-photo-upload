@@ -5,21 +5,21 @@ import {
   withInterceptors,
 } from '@angular/common/http';
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
-import {
-  FirebaseOptions,
-  initializeApp,
-  provideFirebaseApp,
-} from '@angular/fire/app';
-import { getAuth, provideAuth } from '@angular/fire/auth';
+// import {
+//   FirebaseOptions,
+//   initializeApp,
+//   provideFirebaseApp,
+// } from '@angular/fire/app';
+// import { getAuth, provideAuth } from '@angular/fire/auth';
 import { provideClientHydration } from '@angular/platform-browser';
 
-const options: FirebaseOptions = {
-  apiKey: import.meta.env['VITE_FIREBASE_API_KEY'],
-  projectId: import.meta.env['VITE_FIREBASE_PROJECT_ID'],
-  messagingSenderId: import.meta.env['VITE_FIREBASE_SENDER_ID'],
-  authDomain: import.meta.env['VITE_FIREBASE_AUTH_DOMAIN'],
-  appId: import.meta.env['VITE_FIREBASE_APP_ID'],
-};
+// const options: FirebaseOptions = {
+//   apiKey: import.meta.env['VITE_FIREBASE_API_KEY'],
+//   projectId: import.meta.env['VITE_FIREBASE_PROJECT_ID'],
+//   messagingSenderId: import.meta.env['VITE_FIREBASE_SENDER_ID'],
+//   authDomain: import.meta.env['VITE_FIREBASE_AUTH_DOMAIN'],
+//   appId: import.meta.env['VITE_FIREBASE_APP_ID'],
+// };
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -30,7 +30,7 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([requestContextInterceptor]),
     ),
     provideClientHydration(),
-    provideFirebaseApp(() => initializeApp(options)),
-    provideAuth(() => getAuth()),
+    // provideFirebaseApp(() => initializeApp(options)),
+    // provideAuth(() => getAuth()),
   ],
 };

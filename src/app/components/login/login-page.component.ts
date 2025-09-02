@@ -1,13 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import {
-  Auth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  user,
-} from '@angular/fire/auth';
+// import {
+//   Auth,
+//   GoogleAuthProvider,
+//   signInWithPopup,
+//   user,
+// } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-login-page',
@@ -73,21 +73,12 @@ import {
 })
 export class LoginPageComponent {
   /* Dependency injections */
-  private readonly auth = inject(Auth);
-  user$ = user(this.auth);
+  // private readonly auth = inject(Auth);
+  // user$ = user(this.auth);
 
   async signInWithGoogle() {
-    const provider = new GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/drive.photos.readonly');
-
-    const result = await signInWithPopup(this.auth, provider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-
-    console.log(credential);
-
-    return {
-      user: result.user,
-      accessToken: credential?.accessToken, // Google Drive access token
-    };
+    // const provider = new GoogleAuthProvider();
+    // provider.addScope('https://www.googleapis.com/auth/drive.photos.readonly');
+    // await signInWithPopup(this.auth, provider);
   }
 }
