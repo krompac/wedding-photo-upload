@@ -12,7 +12,14 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     mainFields: ['module'],
   },
-  plugins: [analog(), tailwindcss()],
+  plugins: [
+    analog({
+      prerender: {
+        routes: async () => ['/'],
+      },
+    }),
+    tailwindcss(),
+  ],
   test: {
     globals: true,
     environment: 'jsdom',

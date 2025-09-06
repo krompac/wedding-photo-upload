@@ -24,7 +24,6 @@ type UrlResponse = {
 @Component({
   selector: 'app-wedding-photo-upload',
   templateUrl: `file-upload.component.html`,
-  styleUrl: 'file-upload.component.css',
   imports: [PreviewImgComponent],
   providers: [PhotoFileStore],
 })

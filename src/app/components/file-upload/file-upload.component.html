@@ -1,11 +1,17 @@
-<div class="wedding-container">
-  <div class="header">
-    <h1>Marinela & Renato</h1>
-    <h2>Kolekcija Vjenčanih Fotografija</h2>
-    <p class="date">12. kolovoza 2025.</p>
+<div
+  class="mx-auto text-center bg-transparent text-primary px-5 py-8 sm:px-[15px] sm:py-5"
+>
+  <div class="mb-[30px]">
+    <h1 class="text-[42px] font-light m-0 text-heading sm:text-[32px]">
+      Marinela & Renato
+    </h1>
+    <h2 class="text-2xl font-normal my-[10px] text-accent sm:text-xl">
+      Kolekcija Vjenčanih Fotografija
+    </h2>
+    <p class="italic text-lg mt-[5px] text-empty">12. kolovoza 2025.</p>
   </div>
 
-  <div class="message">
+  <div class="mb-[30px] text-lg leading-[1.6]">
     <p>
       Hvala što ste s nama proslavili naš poseban dan! Voljeli bismo vidjeti
       trenutke koje ste zabilježili.
@@ -16,10 +22,12 @@
     </p>
   </div>
 
-  <div class="upload-area">
+  <div
+    class="border-2 border-dashed border-[#d7ccc8] rounded-xl p-10 bg-white transition-all duration-300 ease-in-out my-5 mb-[30px] hover:border-empty hover:bg-[#efebe9] sm:p-5"
+  >
     @if (!uploading() && !uploadSuccess()) {
       <div class="upload-prompt">
-        <div class="icon-container">
+        <div class="mb-[30px]">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -28,7 +36,7 @@
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="camera-icon"
+            class="w-[60px] h-[60px] text-empty mx-auto"
           >
             <path
               d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
@@ -42,33 +50,41 @@
           (change)="onFileSelected($event)"
           accept="image/*"
           multiple
+          class="hidden"
         />
-        <label for="fileInput" class="select-button">
+        <label
+          for="fileInput"
+          class="inline-block py-3 px-6 bg-empty text-white rounded-[30px] cursor-pointer text-base transition-all duration-300 ease-in-out border-none hover:bg-accent-hover hover:-translate-y-0.5"
+        >
           Odaberite Fotografije
         </label>
       </div>
     }
-    <div class="container">
+
+    <div class="flex gap-6 justify-center p-8 flex-wrap">
       @for (file of files(); track file.id) {
         <app-preview-img [file]="file" (remove)="removePhotoFile(file.id)" />
       }
     </div>
+
     @if (files().length > 0 && !uploadSuccess()) {
       <button
-        class="upload-btn"
+        class="py-2 px-4 bg-transparent text-empty border-2 border-empty rounded-[20px] text-sm cursor-pointer transition-all duration-300 ease-in-out hover:bg-empty hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
         (click)="uploadFiles()"
         [disabled]="uploading()"
       >
         Prenesi
       </button>
     }
+
     @if (uploading()) {
-      <div class="upload-status">
+      <div class="text-lg">
         <p>Učitavanje</p>
       </div>
     }
+
     @if (uploadSuccess()) {
-      <div class="success-message">
+      <div class="text-center animate-fade-in">
         <div class="success-icon">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -78,31 +94,39 @@
             stroke-width="2"
             stroke-linecap="round"
             stroke-linejoin="round"
+            class="w-[60px] h-[60px] text-success mb-[15px] mx-auto"
           >
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
             <polyline points="22 4 12 14.01 9 11.01"></polyline>
           </svg>
         </div>
-        <h3>Hvala Vam!</h3>
+        <h3 class="text-2xl mb-[10px] text-success">Hvala Vam!</h3>
         <p>Vaša fotografija je dodana u našu vjenčanu kolekciju</p>
-        <button class="upload-more-btn" (click)="resetForm()">
+        <button
+          class="mt-5 py-[10px] px-5 bg-empty text-white border-none rounded-[30px] cursor-pointer text-base transition-all duration-300 ease-in-out hover:bg-accent-hover"
+          (click)="resetForm()"
+        >
           Učitajte Još Jednu Fotografiju
         </button>
       </div>
     }
+
     @if (errorMessage(); as errMsg) {
-      <div class="error-message">
+      <div class="text-[#e57373] mt-[15px]">
         <p>{{ errMsg }}</p>
-        <button class="try-again-btn" (click)="resetForm()">
+        <button
+          class="mt-5 py-[10px] px-5 bg-empty text-white border-none rounded-[30px] cursor-pointer text-base transition-all duration-300 ease-in-out hover:bg-accent-hover"
+          (click)="resetForm()"
+        >
           Pokušajte Ponovno
         </button>
       </div>
     }
   </div>
 
-  <div class="footer">
+  <div class="mt-10 italic text-empty">
     <p>S ljubavlju, Marinela & Renato</p>
-    <p class="small">
+    <p class="text-sm mt-[5px]">
       Fotografije će biti pregledane prije nego što budu dodane u naš konačni
       album
     </p>
