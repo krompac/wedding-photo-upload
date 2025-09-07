@@ -23,11 +23,11 @@
   </div>
 
   <div
-    class="border-2 border-dashed border-[#d7ccc8] rounded-xl p-10 bg-white transition-all duration-300 ease-in-out my-5 mb-[30px] hover:border-empty hover:bg-[#efebe9] sm:p-5"
+    class="border-2 border-dashed border-[#d7ccc8] rounded-xl p-4 bg-white transition-all duration-300 ease-in-out my-5 mb-[30px] hover:border-empty hover:bg-[#efebe9] sm:p-5"
   >
     @if (!uploading() && !uploadSuccess()) {
       <div class="upload-prompt">
-        <div class="mb-[30px]">
+        <div class="mb-[30px] p-4">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -61,7 +61,7 @@
       </div>
     }
 
-    <div class="flex gap-6 justify-center p-8 flex-wrap">
+    <div class="grid grid-cols-3 gap-3 p-4 max-w-md mx-auto">
       @for (file of files(); track file.id) {
         <app-preview-img [file]="file" (remove)="removePhotoFile(file.id)" />
       }

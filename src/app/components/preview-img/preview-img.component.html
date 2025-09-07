@@ -1,7 +1,46 @@
 @let photoFile = file();
+<div
+  class="relative aspect-square bg-gray-100 rounded-lg shadow-md animate-fade-in-scale"
+>
+  <img
+    [src]="photoFile.src"
+    alt="Wedding photo preview"
+    class="w-full h-full object-cover"
+    [class.opacity-50]="photoFile.status === 'uploading'"
+  />
 
-<img [src]="photoFile.src" />
-
-@if (!photoFile.status) {
-  <button class="remove-btn" (click)="onRemoveClicked()">X</button>
-}
+  @if (!photoFile.status) {
+    <svg
+      class="z-10 absolute -top-2 -right-2 rounded-full w-8 h-8 bg-white fill-red-500"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+    >
+      <path
+        d="M256 512a256 256 0 1 0 0-512 256 256 0 1 0 0 512zM167 167c9.4-9.4 24.6-9.4 33.9 0l55 55 55-55c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-55 55 55 55c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-55-55-55 55c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l55-55-55-55c-9.4-9.4-9.4-24.6 0-33.9z"
+      />
+    </svg>
+  } @else {
+    <div
+      class="absolute inset-0 z-10 bg-opacity-80 flex items-center justify-center"
+    >
+      <div class="text-center">
+        @if (photoFile.status === "uploading") {
+          <div
+            class="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8d6e63] mx-auto mb-1"
+          ></div>
+          <span class="text-xs text-[#8d6e63] font-medium">Učitavanje</span>
+        } @else if (photoFile.status === "success") {
+          <svg
+            class="h-6 w-6 fill-success"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 448 512"
+          >
+            <path
+              d="M434.8 70.1c14.3 10.4 17.5 30.4 7.1 44.7l-256 352c-5.5 7.6-14 12.3-23.4 13.1s-18.5-2.7-25.1-9.3l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l101.5 101.5 234-321.7c10.4-14.3 30.4-17.5 44.7-7.1z"
+            />
+          </svg>
+        }
+      </div>
+    </div>
+  }
+</div>
