@@ -19,7 +19,7 @@ type UrlResponse = {
 @Component({
   selector: 'app-upload-banner',
   template: `
-    @if (fileCount() > 0) {
+    @if (fileCount() > 0 && !uploadSuccess()) {
       <div
         class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg px-4 py-3 z-50 w-[100vw]"
       >
@@ -72,6 +72,7 @@ export class UploadBannerComponent {
 
   readonly fileCount = this.store.fileCount;
   readonly uploading = this.store.uploading;
+  readonly uploadSuccess = this.store.uploadSuccess;
 
   readonly files = this.store.entities;
 
