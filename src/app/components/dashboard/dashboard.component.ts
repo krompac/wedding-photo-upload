@@ -21,7 +21,9 @@ export class DashboardComponent {
     this.http
       .get<DriveFetch>('/api/drive-upload')
       .pipe(takeUntilDestroyed())
-      .subscribe((fetch) => this.images.set(fetch.files));
+      .subscribe((fetch) => {
+        this.images.set(fetch.files);
+      });
   }
 
   filterTag = signal<string>('');
@@ -104,5 +106,32 @@ export class DashboardComponent {
   // Method to update images (for your TypeScript logic)
   updateImages(newImages: DriveFile[]) {
     this.images.set(newImages);
+  }
+
+  /**
+   * Returns a Google Drive thumbnail URL resized to the desired size.
+   * Optionally fetches the image for caching or processing.
+   *
+   * @param thumbnailLink - Drive thumbnailLink (from metadata)
+   * @param size - Desired maximum dimension (e.g., 2000)
+   * @param accessToken - OAuth token with Drive readonly scope
+   * @param fetchImage - if true, fetches the image as blob; if false, just returns URL
+   */
+  async getDrivePreview(
+    thumbnailLink: string,
+    size: number,
+    accessToken: string,
+  ): Promise<Blob> {
+    // Modify the s= parameter in the URL
+    const url = new URL(thumbnailLink);
+    url.searchParams.set('s', size.toString());
+
+    // Fetch the image as a blob (optional)
+    const resp = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!resp.ok)
+      throw new Error(`Failed to fetch Drive preview: ${resp.status}`);
+    return await resp.blob();
   }
 }

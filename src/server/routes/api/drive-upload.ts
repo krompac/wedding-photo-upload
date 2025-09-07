@@ -64,13 +64,20 @@ export default defineEventHandler(async (event) => {
         const filesResponse = await drive.files.list({
           q: `'${FOLDER_ID}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false`,
           fields:
-            'nextPageToken, files(id, name, mimeType, size, parents, thumbnailLink)',
+            'nextPageToken, files(id, name, mimeType, size, parents, thumbnailVersion)',
           pageSize: 50, // Smaller page size for files
         });
 
+        const files = (filesResponse.data.files || []).map((f) => ({
+          ...f,
+          thumbnailUrl: f.thumbnailVersion
+            ? `/api/thumb/${f.id}?v=${f.thumbnailVersion}`
+            : null,
+        }));
+
         return {
           folders: foldersResponse.data.files || [],
-          files: filesResponse.data.files || [],
+          files: files,
           nextPageToken: filesResponse.data.nextPageToken,
           summary: {
             totalFolders: foldersResponse.data.files?.length || 0,

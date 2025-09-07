@@ -19,11 +19,12 @@ export interface DriveFile {
   id: string;
   name: string;
   mimeType: string;
-  thumbnailLink: string;
+  thumbnailUrl: string;
   createdTime: string;
   modifiedTime: string;
   size: string;
   selected?: boolean;
+  thumbnailVersion: string;
 }
 
 export interface FetchSummary {

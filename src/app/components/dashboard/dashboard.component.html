@@ -106,7 +106,7 @@
         <!-- Image -->
         <div class="relative h-[200px] overflow-hidden">
           <img
-            [src]="image.thumbnailLink"
+            [src]="image.thumbnailUrl"
             [alt]="image.name"
             class="w-full h-full object-scale-down transition-transform duration-300 hover:scale-105"
             loading="lazy"
@@ -115,7 +115,9 @@
 
         <!-- Card Footer -->
         <div class="p-4">
-          <h3 class="text-lg font-normal m-0 mb-2.5 text-primary text-left">
+          <h3
+            class="text-lg font-normal m-0 mb-2.5 text-primary text-left text-clip whitespace-nowrap"
+          >
             {{ image.name }}
           </h3>
 
