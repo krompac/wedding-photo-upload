@@ -25,6 +25,8 @@ export interface DriveFile {
   size: string;
   selected?: boolean;
   thumbnailVersion: string;
+  approved: boolean;
+  tags: string[];
 }
 
 export interface FetchSummary {
