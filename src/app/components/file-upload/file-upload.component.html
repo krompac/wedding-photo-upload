@@ -56,7 +56,11 @@
           for="fileInput"
           class="inline-block py-3 px-6 bg-empty text-white rounded-[30px] cursor-pointer text-base transition-all duration-300 ease-in-out border-none hover:bg-accent-hover hover:-translate-y-0.5"
         >
-          Odaberite Fotografije
+          @if (fileCount() > 0) {
+            Odaberite još fotografija
+          } @else {
+            Odaberite fotografije
+          }
         </label>
       </div>
     }
@@ -66,22 +70,6 @@
         <app-preview-img [file]="file" (remove)="removePhotoFile(file.id)" />
       }
     </div>
-
-    @if (files().length > 0 && !uploadSuccess()) {
-      <button
-        class="py-2 px-4 bg-transparent text-empty border-2 border-empty rounded-[20px] text-sm cursor-pointer transition-all duration-300 ease-in-out hover:bg-empty hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-        (click)="uploadFiles()"
-        [disabled]="uploading()"
-      >
-        Prenesi
-      </button>
-    }
-
-    @if (uploading()) {
-      <div class="text-lg">
-        <p>Učitavanje</p>
-      </div>
-    }
 
     @if (uploadSuccess()) {
       <div class="text-center animate-fade-in">
@@ -101,12 +89,19 @@
           </svg>
         </div>
         <h3 class="text-2xl mb-[10px] text-success">Hvala Vam!</h3>
-        <p>Vaša fotografija je dodana u našu vjenčanu kolekciju</p>
+        <p>
+          @if (fileCount() === 1) {
+            Vaša fotografija je dodana
+          } @else {
+            Vaše fotografije su dodane
+          }
+          u našu vjenčanu kolekciju
+        </p>
         <button
           class="mt-5 py-[10px] px-5 bg-empty text-white border-none rounded-[30px] cursor-pointer text-base transition-all duration-300 ease-in-out hover:bg-accent-hover"
           (click)="resetForm()"
         >
-          Učitajte Još Jednu Fotografiju
+          Učitajte još fotografija
         </button>
       </div>
     }

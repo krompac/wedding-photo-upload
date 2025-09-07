@@ -3,10 +3,11 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { DriveFetch, DriveFile } from 'src/app/model/drive-fetch.model';
+import { TagBannerComponent } from '../tag-banner/tag-banner.component';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [FormsModule],
+  imports: [FormsModule, TagBannerComponent],
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent {
@@ -22,6 +23,7 @@ export class DashboardComponent {
       .get<DriveFetch>('/api/drive-upload')
       .pipe(takeUntilDestroyed())
       .subscribe((fetch) => {
+        console.log(fetch.files);
         this.images.set(fetch.files);
       });
   }

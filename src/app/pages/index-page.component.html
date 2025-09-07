@@ -1,4 +1,4 @@
-<div class="wedding-page">
+<div class="wedding-page" [ngClass]="{ '!pb-15': showUploadBanner() }">
   <div class="decorative-element top-left"></div>
   <div class="decorative-element top-right"></div>
 
@@ -7,3 +7,4 @@
   <div class="decorative-element bottom-left"></div>
   <div class="decorative-element bottom-right"></div>
 </div>
+<app-upload-banner />
