@@ -3,7 +3,7 @@
 .wedding-page {
   min-height: 100vh;
   padding: 50px 20px;
-  background-color: var(--color-bg);
+  background-color: var(--color-body-bg);
   position: relative;
   overflow: hidden;
   display: flex;
