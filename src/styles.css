@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Open+Sans:wght@300;400&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -14,9 +15,9 @@
   --color-error-border: #ffcdd2;
   --color-error-bg: #ffebee;
   --color-success: #66bb6a;
+  --color-bg: #fdfbf8;
 }
 
 html {
-  font-family:
-    "Cormorant Garamond", "Playfair Display", "Times New Roman", serif;
+  font-family: "Cormorant Garamond", serif;
 }

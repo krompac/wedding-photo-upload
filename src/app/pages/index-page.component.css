@@ -1,16 +1,14 @@
 /* Import font from Google Fonts if needed */
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Open+Sans:wght@300;400&display=swap");
 
 .wedding-page {
   min-height: 100vh;
   padding: 50px 20px;
-  background-color: #fdfbf8;
+  background-color: var(--color-bg);
   position: relative;
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-family: "Cormorant Garamond", serif;
 }
 
 .decorative-element {
