@@ -16,6 +16,7 @@ export class ChunkedUploadService {
   async uploadFile(photoFile: PhotoFile) {
     // Step 1: Create file on backend
     const { file, id } = photoFile;
+    this.photoFileStore.updateStatus(id, 'uploading');
 
     const createResp = await fetch('/api/test-upload', {
       method: 'POST',
@@ -33,7 +34,7 @@ export class ChunkedUploadService {
 
     // Step 2: Upload in 1MB chunks
     const chunkSize = 1 * 1024 * 1024; // 1 MB
-    this.photoFileStore.updateStatus(id, 'uploading');
+
     let offset = 0;
     this.photoFileStore.updatePhotoProgress(id, 0);
 

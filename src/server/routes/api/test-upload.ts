@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { defineEventHandler, getQuery, readBody, readRawBody } from 'h3';
+import { defineEventHandler, getQuery, readBody } from 'h3';
 
 const credentials = {
   type: process.env['GOOGLE_SERVICE_ACCOUNT_TYPE'] || 'service_account',
@@ -27,35 +27,60 @@ const FOLDER_ID = process.env['GOOGLE_DRIVE_FOLDER_ID'];
 
 export default defineEventHandler(async (event) => {
   if (event.node.req.method === 'PUT') {
-    const {
-      fileType,
-      offset,
-      end,
-      fileSize,
-      sessionUrl,
-      upload_id,
-      session_crd,
-    } = getQuery(event) as any;
+    try {
+      const {
+        fileType,
+        offset,
+        end,
+        fileSize,
+        sessionUrl,
+        upload_id,
+        session_crd,
+      } = getQuery(event) as any;
 
-    const headers = new Headers({
-      'Content-Type': fileType,
-      'Content-Range': `bytes ${offset}-${end - 1}/${fileSize}`,
-    });
+      // Manual stream reading to avoid asyncIterator issue
+      const chunk = await new Promise<Buffer>((resolve, reject) => {
+        const chunks: Buffer[] = [];
 
-    // Use readRawBody instead of async iteration
-    const chunk = await readRawBody(event);
+        event.node.req.on('data', (data: Buffer) => {
+          chunks.push(data);
+        });
 
-    const resp = await fetch(
-      sessionUrl + `&session_crd=${session_crd}&upload_id=${upload_id}`,
-      {
-        method: 'PUT',
-        headers,
-        body: chunk,
-      },
-    );
+        event.node.req.on('end', () => {
+          resolve(Buffer.concat(chunks));
+        });
 
-    return { status: resp.status, ok: resp.ok };
+        event.node.req.on('error', (error) => {
+          reject(error);
+        });
+      });
+
+      const headers = {
+        'Content-Type': fileType,
+        'Content-Range': `bytes ${offset}-${end - 1}/${fileSize}`,
+        'Content-Length': chunk.length.toString(),
+      };
+
+      const resp = await fetch(
+        sessionUrl + `&session_crd=${session_crd}&upload_id=${upload_id}`,
+        {
+          method: 'PUT',
+          headers,
+          body: chunk,
+        },
+      );
+
+      return { status: resp.status, ok: resp.ok };
+    } catch (error: any) {
+      console.error('Error durgin upload session:', error.message);
+      event.node.res.statusCode = 500;
+      return {
+        error: 'Failed to upload image',
+        details: error.message,
+      };
+    }
   }
+
   if (event.node.req.method === 'POST') {
     try {
       const { fileName, mimeType } = await readBody(event);
