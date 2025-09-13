@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { defineEventHandler, getQuery, readBody } from 'h3';
+import { defineEventHandler, getQuery, readBody, readRawBody } from 'h3';
 
 const credentials = {
   type: process.env['GOOGLE_SERVICE_ACCOUNT_TYPE'] || 'service_account',
@@ -42,9 +42,8 @@ export default defineEventHandler(async (event) => {
       'Content-Range': `bytes ${offset}-${end - 1}/${fileSize}`,
     });
 
-    const chunks: Uint8Array[] = [];
-    for await (const chunk of event.node.req) chunks.push(chunk);
-    const chunk = Buffer.concat(chunks);
+    // Use readRawBody instead of async iteration
+    const chunk = await readRawBody(event);
 
     const resp = await fetch(
       sessionUrl + `&session_crd=${session_crd}&upload_id=${upload_id}`,
@@ -57,7 +56,6 @@ export default defineEventHandler(async (event) => {
 
     return { status: resp.status, ok: resp.ok };
   }
-
   if (event.node.req.method === 'POST') {
     try {
       const { fileName, mimeType } = await readBody(event);
