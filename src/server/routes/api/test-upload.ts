@@ -1,5 +1,11 @@
 import { google } from 'googleapis';
-import { defineEventHandler, getHeader, getQuery, readBody } from 'h3';
+import {
+  defineEventHandler,
+  getHeader,
+  getQuery,
+  readBody,
+  readRawBody,
+} from 'h3';
 
 const credentials = {
   type: process.env['GOOGLE_SERVICE_ACCOUNT_TYPE'] || 'service_account',
@@ -38,26 +44,12 @@ export default defineEventHandler(async (event) => {
       }
 
       // Manual stream reading to avoid asyncIterator issue
-      const chunk = await new Promise<Buffer>((resolve, reject) => {
-        const chunks: Buffer[] = [];
-
-        event.node.req.on('data', (data: Buffer) => {
-          chunks.push(data);
-        });
-
-        event.node.req.on('end', () => {
-          resolve(Buffer.concat(chunks));
-        });
-
-        event.node.req.on('error', (error) => {
-          reject(error);
-        });
-      });
+      const chunk = await readRawBody(event, false);
 
       const headers = {
         'Content-Type': fileType,
         'Content-Range': `bytes ${offset}-${end - 1}/${fileSize}`,
-        'Content-Length': chunk.length.toString(),
+        'Content-Length': chunk?.length.toString() ?? '',
       };
 
       const resp = await fetch(sessionUrl, {
