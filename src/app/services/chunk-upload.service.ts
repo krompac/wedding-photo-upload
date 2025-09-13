@@ -52,6 +52,7 @@ export class ChunkedUploadService {
       if (!(resp.ok || resp.status === 308)) {
         this.photoFileStore.updateStatus(id, 'error');
         this.photoFileStore.updatePhotoProgress(id, 0);
+        console.error(resp);
         throw new Error(`Upload failed at chunk starting ${offset}`);
       }
 
