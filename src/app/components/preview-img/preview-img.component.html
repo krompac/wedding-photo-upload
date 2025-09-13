@@ -28,8 +28,14 @@
           <div
             class="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8d6e63] mx-auto mb-1"
           ></div>
-          <span class="text-xs text-[#8d6e63] font-medium bg-body-bg">
-            Učitavanje {{ photoFile.progress ?? 0 }}%
+          <span
+            class="text-xs text-[#8d6e63] font-medium"
+            [class.bg-body-bg]="photoFile.progress !== undefined"
+          >
+            Učitavanje
+            @if (photoFile.progress) {
+              {{ photoFile.progress }}%
+            }
           </span>
         } @else if (photoFile.status === "success") {
           <svg

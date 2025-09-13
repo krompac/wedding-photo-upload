@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { defineEventHandler, getQuery, readBody } from 'h3';
+import { defineEventHandler, getHeader, getQuery, readBody } from 'h3';
 
 const credentials = {
   type: process.env['GOOGLE_SERVICE_ACCOUNT_TYPE'] || 'service_account',
@@ -28,15 +28,14 @@ const FOLDER_ID = process.env['GOOGLE_DRIVE_FOLDER_ID'];
 export default defineEventHandler(async (event) => {
   if (event.node.req.method === 'PUT') {
     try {
-      const {
-        fileType,
-        offset,
-        end,
-        fileSize,
-        sessionUrl,
-        upload_id,
-        session_crd,
-      } = getQuery(event) as any;
+      const { fileType, offset, end, fileSize } = getQuery(event) as any;
+
+      const sessionUrl =
+        getHeader(event, 'X-Session-URL') || getHeader(event, 'x-session-url');
+
+      if (!sessionUrl) {
+        return { status: 400, ok: false, error: 'Session URL required' };
+      }
 
       // Manual stream reading to avoid asyncIterator issue
       const chunk = await new Promise<Buffer>((resolve, reject) => {
@@ -61,14 +60,11 @@ export default defineEventHandler(async (event) => {
         'Content-Length': chunk.length.toString(),
       };
 
-      const resp = await fetch(
-        sessionUrl + `&session_crd=${session_crd}&upload_id=${upload_id}`,
-        {
-          method: 'PUT',
-          headers,
-          body: chunk,
-        },
-      );
+      const resp = await fetch(sessionUrl, {
+        method: 'PUT',
+        headers,
+        body: chunk,
+      });
 
       return { status: resp.status, ok: resp.ok };
     } catch (error: any) {

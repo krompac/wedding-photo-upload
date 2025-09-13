@@ -29,7 +29,6 @@ export class ChunkedUploadService {
     }
 
     const createData: any = await createResp.json();
-    console.log(createData.body);
     const sessionUrl = createData.body.sessionUrl;
 
     // Step 2: Upload in 1MB chunks
@@ -43,10 +42,13 @@ export class ChunkedUploadService {
       const chunk = file.slice(offset, end);
 
       const resp = await fetch(
-        `/api/test-upload?fileType=${file.type}&offset=${offset}&end=${end}&fileSize=${file.size}&sessionUrl=${sessionUrl}`,
+        `/api/test-upload?fileType=${file.type}&offset=${offset}&end=${end}&fileSize=${file.size}`,
         {
           method: 'PUT',
           body: chunk,
+          headers: {
+            'X-Session-URL': sessionUrl, // Pass in header instead
+          },
         },
       );
 
