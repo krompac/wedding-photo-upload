@@ -45,3 +45,4 @@ Thumbs.db
 
 .env
 service-account-credentials.json
+drive-upload*.json

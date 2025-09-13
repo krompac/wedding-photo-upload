@@ -40,6 +40,9 @@ const PhotoFileStore = signalStore(
     updateStatus(id: EntityId, status: PhotoFile['status']): void {
       patchState(store, updateEntity({ id, changes: { status } }));
     },
+    updatePhotoProgress(id: EntityId, progress: number): void {
+      patchState(store, updateEntity({ id, changes: { progress } }));
+    },
     resetPhotos(): void {
       patchState(store, setAllEntities([] as PhotoFile[]));
     },

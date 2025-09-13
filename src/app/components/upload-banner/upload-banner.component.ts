@@ -3,6 +3,7 @@ import { Component, DestroyRef, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, map, Observable, of, switchMap } from 'rxjs';
 import { PhotoFile } from '../../model/photo-file.model';
+import { ChunkedUploadService } from '../../services/chunk-upload.service';
 import PhotoFileStore from '../../store/photo-file.store';
 
 type UrlResponse = {
@@ -67,6 +68,7 @@ export class UploadBannerComponent {
   private readonly http = inject(HttpClient);
   private readonly store = inject(PhotoFileStore);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly uploadService = inject(ChunkedUploadService);
 
   readonly errorMessage = output<string>();
 
@@ -78,7 +80,8 @@ export class UploadBannerComponent {
 
   onUpload(): void {
     this.errorMessage.emit('');
-    this.files().forEach((file) => this.uploadFile(file));
+    this.files().forEach((file) => this.uploadService.uploadFile(file));
+    // this.files().forEach((file) => this.uploadFile(file));
   }
 
   private uploadFile(fileToUpload: PhotoFile): void {
@@ -138,6 +141,8 @@ export class UploadBannerComponent {
     accessToken: string,
     fileId: string,
   ): Observable<any> {
+    console.log(accessToken.slice(0, 10));
+
     const headers = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': file.type,

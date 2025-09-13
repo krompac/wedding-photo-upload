@@ -3,6 +3,7 @@ import { NgClass } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { WeddingPhotoUploadComponent } from '../components/file-upload/file-upload.component';
 import { UploadBannerComponent } from '../components/upload-banner/upload-banner.component';
+import { ChunkedUploadService } from '../services/chunk-upload.service';
 import PhotoFileStore from '../store/photo-file.store';
 
 @Component({
@@ -11,7 +12,7 @@ import PhotoFileStore from '../store/photo-file.store';
   imports: [WeddingPhotoUploadComponent, UploadBannerComponent, NgClass],
   templateUrl: 'index-page.component.html',
   styleUrl: './index-page.component.css',
-  providers: [PhotoFileStore],
+  providers: [PhotoFileStore, ChunkedUploadService],
 })
 export default class WeddingPhotosPage {
   /* Dependency injections */
