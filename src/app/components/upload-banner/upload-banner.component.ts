@@ -117,10 +117,8 @@ export class UploadBannerComponent {
         ),
       )
       .subscribe({
-        next: (event) => {
+        next: () => {
           updatestatus('success');
-
-          console.log(event);
         },
         error: (error) => {
           updatestatus('error');
@@ -141,8 +139,6 @@ export class UploadBannerComponent {
     accessToken: string,
     fileId: string,
   ): Observable<any> {
-    console.log(accessToken.slice(0, 10));
-
     const headers = new HttpHeaders({
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': file.type,

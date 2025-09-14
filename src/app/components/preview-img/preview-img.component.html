@@ -11,9 +11,10 @@
 
   @if (!photoFile.status) {
     <svg
-      class="z-10 absolute -top-2 -right-2 rounded-full w-8 h-8 bg-white fill-red-500"
+      class="z-10 absolute -top-2 -right-2 rounded-full w-8 h-8 bg-white fill-red-500 cursor-pointer"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 512 512"
+      (click)="onRemoveClicked()"
     >
       <path
         d="M256 512a256 256 0 1 0 0-512 256 256 0 1 0 0 512zM167 167c9.4-9.4 24.6-9.4 33.9 0l55 55 55-55c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-55 55 55 55c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-55-55-55 55c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l55-55-55-55c-9.4-9.4-9.4-24.6 0-33.9z"
@@ -28,15 +29,24 @@
           <div
             class="animate-spin rounded-full h-6 w-6 border-b-2 border-[#8d6e63] mx-auto mb-1"
           ></div>
-          <span
-            class="text-xs text-[#8d6e63] font-medium"
-            [class.bg-body-bg]="photoFile.progress !== undefined"
-          >
-            Učitavanje
-            @if (photoFile.progress) {
-              {{ photoFile.progress }}%
-            }
-          </span>
+          @if (photoFile.progress !== undefined) {
+            <div class="absolute w-full bottom-1 left-0">
+              <div class="w-[80%] flex justify-center mx-auto">
+                <div
+                  role="progressbar"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="45"
+                  class="w-full bg-gray-200 rounded-full h-2 overflow-hidden"
+                >
+                  <div
+                    class="h-full rounded-full bg-gradient-to-r from-empty to-accent transition-all duration-500"
+                    [style.width]="photoFile.progress + '%'"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          }
         } @else if (photoFile.status === "success") {
           <svg
             class="h-6 w-6 fill-success"

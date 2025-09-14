@@ -64,8 +64,6 @@ export default defineEventHandler(async (event) => {
       event.node.res.setHeader('ETag', `"${thumbnailVersion}"`);
     }
 
-    console.log('hello there');
-
     const buf = Buffer.from(await imgResp.arrayBuffer());
     return send(event, buf);
   } catch (err: any) {

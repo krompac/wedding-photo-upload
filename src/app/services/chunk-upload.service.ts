@@ -1,4 +1,4 @@
-import { effect, inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { PhotoFile } from '../model/photo-file.model';
 import PhotoFileStore from '../store/photo-file.store';
 
@@ -8,10 +8,6 @@ export class ChunkedUploadService {
   private readonly photoFileStore = inject(PhotoFileStore);
 
   readonly progress = signal(0);
-
-  constructor() {
-    effect(() => console.log(this.progress()));
-  }
 
   async uploadFile(photoFile: PhotoFile) {
     // Step 1: Create file on backend
@@ -66,6 +62,7 @@ export class ChunkedUploadService {
     }
     this.photoFileStore.updatePhotoProgress(id, 100);
     this.photoFileStore.updateStatus(id, 'success');
+
     return { success: true };
   }
 }
