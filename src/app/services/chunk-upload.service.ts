@@ -2,10 +2,41 @@ import { inject, Injectable, signal } from '@angular/core';
 import { PhotoFile } from '../model/photo-file.model';
 import PhotoFileStore from '../store/photo-file.store';
 
+class Semaphore {
+  private tasks: (() => void)[] = [];
+  private counter: number;
+
+  constructor(limit: number) {
+    this.counter = limit;
+  }
+
+  async acquire(): Promise<() => void> {
+    if (this.counter > 0) {
+      this.counter--;
+      return () => this.release();
+    }
+
+    return new Promise<() => void>((resolve) => {
+      this.tasks.push(() => resolve(() => this.release()));
+    });
+  }
+
+  private release() {
+    this.counter++;
+    if (this.tasks.length > 0 && this.counter > 0) {
+      this.counter--;
+      const next = this.tasks.shift();
+      next?.();
+    }
+  }
+}
+
 @Injectable()
 export class ChunkedUploadService {
   /* Dependency injections */
   private readonly photoFileStore = inject(PhotoFileStore);
+
+  private readonly putSemaphore = new Semaphore(5);
 
   readonly progress = signal(0);
 
@@ -38,31 +69,40 @@ export class ChunkedUploadService {
       const end = Math.min(offset + chunkSize, file.size);
       const chunk = file.slice(offset, end);
 
-      const resp = await fetch(
-        `/api/test-upload?fileType=${file.type}&offset=${offset}&end=${end}&fileSize=${file.size}`,
-        {
-          method: 'PUT',
-          body: chunk,
-          headers: {
-            'X-Session-URL': sessionUrl, // Pass in header instead
+      // Acquire slot
+      const release = await this.putSemaphore.acquire();
+
+      try {
+        const resp = await fetch(
+          `/api/test-upload?fileType=${file.type}&offset=${offset}&end=${end}&fileSize=${file.size}`,
+          {
+            method: 'PUT',
+            body: chunk,
+            headers: {
+              'X-Session-URL': sessionUrl,
+            },
           },
-        },
-      );
+        );
 
-      if (!(resp.ok || resp.status === 308)) {
-        this.photoFileStore.updateStatus(id, 'error');
-        this.photoFileStore.updatePhotoProgress(id, 0);
-        console.error(resp);
-        throw new Error(`Upload failed at chunk starting ${offset}`);
+        if (!(resp.ok || resp.status === 308)) {
+          this.photoFileStore.updateStatus(id, 'error');
+          this.photoFileStore.updatePhotoProgress(id, 0);
+          console.error(resp);
+          throw new Error(`Upload failed at chunk starting ${offset}`);
+        }
+
+        offset = end;
+        const progress = Math.round((offset / file.size) * 100);
+        console.log('Progress:', progress, '%');
+        this.photoFileStore.updatePhotoProgress(id, progress);
+      } finally {
+        // Free slot for next waiting PUT
+        release();
       }
-
-      offset = end;
-      const progress = Math.round((offset / file.size) * 100);
-      console.log('Progress:', progress, '%');
-      this.photoFileStore.updatePhotoProgress(id, progress);
 
       await this.wait(this.getRandomPrime());
     }
+
     this.photoFileStore.updatePhotoProgress(id, 100);
     this.photoFileStore.updateStatus(id, 'success');
 
