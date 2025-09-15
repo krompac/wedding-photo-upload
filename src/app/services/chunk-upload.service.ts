@@ -5,108 +5,163 @@ import PhotoFileStore from '../store/photo-file.store';
 class Semaphore {
   private tasks: (() => void)[] = [];
   private counter: number;
+  private readonly maxLimit: number;
 
   constructor(limit: number) {
     this.counter = limit;
+    this.maxLimit = limit;
   }
 
   async acquire(): Promise<() => void> {
-    if (this.counter > 0) {
-      this.counter--;
-      return () => this.release();
-    }
-
     return new Promise<() => void>((resolve) => {
-      this.tasks.push(() => resolve(() => this.release()));
+      if (this.counter > 0) {
+        this.counter--;
+        resolve(() => this.release());
+      } else {
+        this.tasks.push(() => resolve(() => this.release()));
+      }
     });
   }
 
   private release() {
-    this.counter++;
-    if (this.tasks.length > 0 && this.counter > 0) {
-      this.counter--;
+    if (this.counter >= this.maxLimit) {
+      console.warn('Semaphore: release() called more times than acquire()');
+      return;
+    }
+
+    if (this.tasks.length > 0) {
       const next = this.tasks.shift();
       next?.();
+    } else {
+      this.counter++;
     }
   }
+
+  get availableSlots(): number {
+    return this.counter;
+  }
+
+  get queuedTasks(): number {
+    return this.tasks.length;
+  }
+}
+
+interface CreateFileResponse {
+  sessionUrl: string;
+}
+
+interface UploadResult {
+  success: boolean;
+  error?: string;
 }
 
 @Injectable()
 export class ChunkedUploadService {
-  /* Dependency injections */
   private readonly photoFileStore = inject(PhotoFileStore);
-
   private readonly putSemaphore = new Semaphore(5);
+  private readonly chunkSize = 1024 * 1024; // 1 MB
 
   readonly progress = signal(0);
 
-  async uploadFile(photoFile: PhotoFile, index: number) {
-    // Step 1: Create file on backend
+  async uploadFile(photoFile: PhotoFile, index: number): Promise<UploadResult> {
     const { file, id } = photoFile;
 
-    await this.wait(100 * index);
+    try {
+      await this.wait(100 * index);
 
-    const createResp = await fetch('/api/test-upload', {
+      const sessionUrl = await this.createFileSession(file);
+
+      await this.uploadChunks(file, id, sessionUrl);
+
+      // Mark as complete
+      this.photoFileStore.updatePhotoProgress(id, 100);
+      this.photoFileStore.updateStatus(id, 'success');
+
+      return { success: true };
+    } catch (error) {
+      console.error(`Upload failed for file ${file.name}:`, error);
+      this.photoFileStore.updateStatus(id, 'error');
+      this.photoFileStore.updatePhotoProgress(id, 0);
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  private async createFileSession(file: File): Promise<string> {
+    const response = await fetch('/api/test-upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileName: file.name, mimeType: file.type }),
+      body: JSON.stringify({
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+      }),
     });
 
-    if (!createResp.ok) {
-      throw new Error('Failed to create file on backend');
+    if (!response.ok) {
+      throw new Error(
+        `Failed to create file session: ${response.status} ${response.statusText}`,
+      );
     }
 
-    const createData: any = await createResp.json();
-    const sessionUrl = createData.body.sessionUrl;
+    const data: { body: CreateFileResponse } = await response.json();
+    return data.body.sessionUrl;
+  }
 
-    // Step 2: Upload in 1MB chunks
-    const chunkSize = 1 * 1024 * 1024; // 1 MB
-
+  private async uploadChunks(
+    file: File,
+    fileId: string,
+    sessionUrl: string,
+  ): Promise<void> {
     let offset = 0;
-    this.photoFileStore.updatePhotoProgress(id, 0);
+    this.photoFileStore.updatePhotoProgress(fileId, 0);
 
     while (offset < file.size) {
-      const end = Math.min(offset + chunkSize, file.size);
+      const end = Math.min(offset + this.chunkSize, file.size);
       const chunk = file.slice(offset, end);
 
-      // Acquire slot
-      const release = await this.putSemaphore.acquire();
+      await this.uploadChunk(chunk, file, fileId, sessionUrl, offset, end);
 
-      try {
-        const resp = await fetch(
-          `/api/test-upload?fileType=${file.type}&offset=${offset}&end=${end}&fileSize=${file.size}`,
-          {
-            method: 'PUT',
-            body: chunk,
-            headers: {
-              'X-Session-URL': sessionUrl,
-            },
-          },
-        );
-
-        if (!(resp.ok || resp.status === 308)) {
-          this.photoFileStore.updateStatus(id, 'error');
-          this.photoFileStore.updatePhotoProgress(id, 0);
-          console.error(resp);
-          throw new Error(`Upload failed at chunk starting ${offset}`);
-        }
-
-        offset = end;
-        const progress = Math.round((offset / file.size) * 100);
-        console.log('Progress:', progress, '%');
-        this.photoFileStore.updatePhotoProgress(id, progress);
-      } finally {
-        // Free slot for next waiting PUT
-        release();
-      }
-
-      await this.wait(this.getRandomPrime());
+      offset = end;
+      const progress = Math.round((offset / file.size) * 100);
+      this.photoFileStore.updatePhotoProgress(fileId, progress);
     }
+  }
 
-    this.photoFileStore.updatePhotoProgress(id, 100);
-    this.photoFileStore.updateStatus(id, 'success');
+  private async uploadChunk(
+    chunk: Blob,
+    file: File,
+    fileId: string,
+    sessionUrl: string,
+    offset: number,
+    end: number,
+  ): Promise<void> {
+    const release = await this.putSemaphore.acquire();
 
-    return { success: true };
+    try {
+      const response = await fetch(
+        `/api/test-upload?fileType=${encodeURIComponent(file.type)}&offset=${offset}&end=${end}&fileSize=${file.size}`,
+        {
+          method: 'PUT',
+          body: chunk,
+          headers: {
+            'X-Session-URL': sessionUrl,
+            'Content-Type': file.type,
+          },
+        },
+      );
+
+      if (!response.ok && response.status !== 308) {
+        throw new Error(
+          `Chunk upload failed at offset ${offset}: ${response.status} ${response.statusText}`,
+        );
+      }
+    } finally {
+      release();
+    }
   }
 
   private async wait(ms: number): Promise<void> {
@@ -115,14 +170,10 @@ export class ChunkedUploadService {
     });
   }
 
-  private getRandomPrime(): number {
-    // All primes from 1 to 100
-    const primes = [
-      2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67,
-      71, 73, 79, 83, 89, 97,
-    ];
-
-    const randomIndex = Math.floor(Math.random() * primes.length);
-    return primes[randomIndex];
+  getSemaphoreStatus(): { available: number; queued: number } {
+    return {
+      available: this.putSemaphore.availableSlots,
+      queued: this.putSemaphore.queuedTasks,
+    };
   }
 }
