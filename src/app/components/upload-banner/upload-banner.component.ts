@@ -80,7 +80,9 @@ export class UploadBannerComponent {
 
   onUpload(): void {
     this.errorMessage.emit('');
-    this.files().forEach((file) => this.uploadService.uploadFile(file));
+    this.files().forEach((file, index) =>
+      this.uploadService.uploadFile(file, index),
+    );
     // this.files().forEach((file) => this.uploadFile(file));
   }
 

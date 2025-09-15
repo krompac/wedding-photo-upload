@@ -9,10 +9,13 @@ export class ChunkedUploadService {
 
   readonly progress = signal(0);
 
-  async uploadFile(photoFile: PhotoFile) {
+  async uploadFile(photoFile: PhotoFile, index: number) {
     // Step 1: Create file on backend
     const { file, id } = photoFile;
+
     this.photoFileStore.updateStatus(id, 'uploading');
+
+    await this.wait(100 * index);
 
     const createResp = await fetch('/api/test-upload', {
       method: 'POST',
@@ -59,10 +62,18 @@ export class ChunkedUploadService {
       const progress = Math.round((offset / file.size) * 100);
       console.log('Progress:', progress, '%');
       this.photoFileStore.updatePhotoProgress(id, progress);
+
+      await this.wait(50);
     }
     this.photoFileStore.updatePhotoProgress(id, 100);
     this.photoFileStore.updateStatus(id, 'success');
 
     return { success: true };
+  }
+
+  private async wait(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 }
