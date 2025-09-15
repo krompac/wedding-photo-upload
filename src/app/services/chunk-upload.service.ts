@@ -13,8 +13,6 @@ export class ChunkedUploadService {
     // Step 1: Create file on backend
     const { file, id } = photoFile;
 
-    this.photoFileStore.updateStatus(id, 'uploading');
-
     await this.wait(100 * index);
 
     const createResp = await fetch('/api/test-upload', {
@@ -63,7 +61,7 @@ export class ChunkedUploadService {
       console.log('Progress:', progress, '%');
       this.photoFileStore.updatePhotoProgress(id, progress);
 
-      await this.wait(50);
+      await this.wait(this.getRandomPrime());
     }
     this.photoFileStore.updatePhotoProgress(id, 100);
     this.photoFileStore.updateStatus(id, 'success');
@@ -75,5 +73,16 @@ export class ChunkedUploadService {
     return new Promise((resolve) => {
       setTimeout(resolve, ms);
     });
+  }
+
+  private getRandomPrime(): number {
+    // All primes from 1 to 100
+    const primes = [
+      2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67,
+      71, 73, 79, 83, 89, 97,
+    ];
+
+    const randomIndex = Math.floor(Math.random() * primes.length);
+    return primes[randomIndex];
   }
 }

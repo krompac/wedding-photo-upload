@@ -78,12 +78,20 @@ export class UploadBannerComponent {
 
   readonly files = this.store.entities;
 
-  onUpload(): void {
+  async onUpload(): Promise<void> {
     this.errorMessage.emit('');
-    this.files().forEach((file, index) =>
-      this.uploadService.uploadFile(file, index),
-    );
-    // this.files().forEach((file) => this.uploadFile(file));
+    const files = this.files();
+    const batchSize = 5;
+
+    this.store.setAllToUploading();
+
+    for (let i = 0; i < files.length; i += batchSize) {
+      const batch = files.slice(i, i + batchSize);
+
+      await Promise.all(
+        batch.map((file, index) => this.uploadService.uploadFile(file, index)),
+      );
+    }
   }
 
   private uploadFile(fileToUpload: PhotoFile): void {

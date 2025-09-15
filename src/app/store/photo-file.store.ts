@@ -10,6 +10,7 @@ import {
   EntityId,
   removeEntity,
   setAllEntities,
+  updateAllEntities,
   updateEntity,
   withEntities,
 } from '@ngrx/signals/entities';
@@ -36,6 +37,9 @@ const PhotoFileStore = signalStore(
     },
     removePhotoFile(id: EntityId): void {
       patchState(store, removeEntity(id));
+    },
+    setAllToUploading(): void {
+      patchState(store, updateAllEntities({ status: 'uploading' }));
     },
     updateStatus(id: EntityId, status: PhotoFile['status']): void {
       patchState(store, updateEntity({ id, changes: { status } }));
