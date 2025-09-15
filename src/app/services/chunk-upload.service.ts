@@ -90,7 +90,7 @@ export class ChunkedUploadService {
     }
   }
 
-  private async createFileSession(file: File, maxRetries = 3): Promise<string> {
+  private async createFileSession(file: File, maxRetries = 5): Promise<string> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const controller = new AbortController();
@@ -137,7 +137,7 @@ export class ChunkedUploadService {
         }
 
         // Wait before retrying (exponential backoff)
-        await this.wait(Math.pow(2, attempt - 1) * 500);
+        await this.wait(Math.pow(2, attempt - 1) * 1000);
       }
     }
 
