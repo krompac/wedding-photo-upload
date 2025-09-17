@@ -1,50 +1,8 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { PhotoFile } from '../model/photo-file.model';
 import PhotoFileStore from '../store/photo-file.store';
-
-class Semaphore {
-  private tasks: (() => void)[] = [];
-  private counter: number;
-  private readonly maxLimit: number;
-
-  constructor(limit: number) {
-    this.counter = limit;
-    this.maxLimit = limit;
-  }
-
-  async acquire(): Promise<() => void> {
-    return new Promise<() => void>((resolve) => {
-      if (this.counter > 0) {
-        this.counter--;
-        resolve(() => this.release());
-      } else {
-        this.tasks.push(() => resolve(() => this.release()));
-      }
-    });
-  }
-
-  private release() {
-    if (this.counter >= this.maxLimit) {
-      console.warn('Semaphore: release() called more times than acquire()');
-      return;
-    }
-
-    if (this.tasks.length > 0) {
-      const next = this.tasks.shift();
-      next?.();
-    } else {
-      this.counter++;
-    }
-  }
-
-  get availableSlots(): number {
-    return this.counter;
-  }
-
-  get queuedTasks(): number {
-    return this.tasks.length;
-  }
-}
+import { Semaphore } from '../utils/semaphore.utils';
+import { wait } from '../utils/wait.util';
 
 interface CreateFileResponse {
   sessionUrl: string;
@@ -58,16 +16,13 @@ interface UploadResult {
 @Injectable()
 export class ChunkedUploadService {
   private readonly photoFileStore = inject(PhotoFileStore);
-  private readonly putSemaphore = new Semaphore(5);
-  private readonly chunkSize = 1024 * 1024; // 1 MB
-
-  readonly progress = signal(0);
+  private readonly putSemaphore = new Semaphore(10);
 
   async uploadFile(photoFile: PhotoFile, index: number): Promise<UploadResult> {
     const { file, id } = photoFile;
 
     try {
-      await this.wait(100 * index);
+      await wait(100 * index);
 
       const sessionUrl = await this.createFileSession(file);
 
@@ -137,7 +92,7 @@ export class ChunkedUploadService {
         }
 
         // Wait before retrying (exponential backoff)
-        await this.wait(Math.pow(2, attempt - 1) * 1000);
+        await wait(Math.pow(2, attempt - 1) * 1000);
       }
     }
 
@@ -149,19 +104,70 @@ export class ChunkedUploadService {
     fileId: string,
     sessionUrl: string,
   ): Promise<void> {
-    let offset = 0;
-    this.photoFileStore.updatePhotoProgress(fileId, 0);
+    // 1. probe speed
+    const speedBps = await this.probeUploadSpeed(file, fileId, sessionUrl);
+    // 2. choose starting chunk size
+    let chunkSize = this.pickInitialChunkSize(speedBps);
+    const minChunkSize = 256 * 1024;
+    const maxChunkSize = 5 * 1024 * 1024;
 
+    let offset = 256 * 1024; // because we already sent first 256KB in probe
+    this.photoFileStore.updatePhotoProgress(
+      fileId,
+      Math.round((offset / file.size) * 100),
+    );
+
+    // 3. adaptive loop
     while (offset < file.size) {
-      const end = Math.min(offset + this.chunkSize, file.size);
+      const end = Math.min(offset + chunkSize, file.size);
       const chunk = file.slice(offset, end);
 
+      const startTime = performance.now();
       await this.uploadChunk(chunk, file, fileId, sessionUrl, offset, end);
+      const duration = (performance.now() - startTime) / 1000;
 
       offset = end;
-      const progress = Math.round((offset / file.size) * 100);
-      this.photoFileStore.updatePhotoProgress(fileId, progress);
+      this.photoFileStore.updatePhotoProgress(
+        fileId,
+        Math.round((offset / file.size) * 100),
+      );
+
+      // adjust chunk size dynamically:
+      if (duration > 3 && chunkSize > minChunkSize) {
+        chunkSize = Math.max(minChunkSize, Math.floor(chunkSize / 2));
+      } else if (duration < 1 && chunkSize < maxChunkSize) {
+        chunkSize = Math.min(maxChunkSize, Math.floor(chunkSize * 2));
+      }
     }
+  }
+
+  private async probeUploadSpeed(
+    file: File,
+    fileId: string,
+    sessionUrl: string,
+  ): Promise<number> {
+    // Probe with a 256KB slice
+    const probeSize = 256 * 1024;
+    const chunk = file.slice(0, probeSize);
+
+    const startTime = performance.now();
+    await this.uploadChunk(chunk, file, fileId, sessionUrl, 0, probeSize);
+    const duration = (performance.now() - startTime) / 1000; // seconds
+
+    // bytes/sec
+    const speed = probeSize / duration;
+    console.log(`Probe upload speed: ${(speed / 1024).toFixed(0)} KB/s`);
+
+    return speed; // in bytes per second
+  }
+
+  private pickInitialChunkSize(speedBps: number): number {
+    // aim for ~1.5 seconds per chunk
+    const desiredDuration = 1.5; // seconds
+    const chunkSize = Math.round(speedBps * desiredDuration);
+
+    // clamp between 256KB and 5MB
+    return Math.min(5 * 1024 * 1024, Math.max(256 * 1024, chunkSize));
   }
 
   private async uploadChunk(
@@ -208,12 +214,6 @@ export class ChunkedUploadService {
     } finally {
       release();
     }
-  }
-
-  private async wait(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-      setTimeout(resolve, ms);
-    });
   }
 
   // Utility methods for monitoring

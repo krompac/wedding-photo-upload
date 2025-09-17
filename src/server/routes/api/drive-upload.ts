@@ -1,4 +1,3 @@
-import { ErrorReporting } from '@google-cloud/error-reporting';
 import { google } from 'googleapis';
 import {
   createError,
@@ -42,11 +41,6 @@ const auth = new google.auth.JWT(
 
 // Create Drive client
 const drive = google.drive({ version: 'v3', auth });
-
-const errorReporting = new ErrorReporting({
-  credentials,
-  reportMode: 'always',
-});
 
 // Folder ID where files will be uploaded
 const FOLDER_ID = process.env['GOOGLE_DRIVE_FOLDER_ID'];
@@ -114,7 +108,6 @@ const handlePost = async (event: H3Event<EventHandlerRequest>) => {
     console.error('Error generating upload URL:', error);
     console.error('Folder ID being used:', FOLDER_ID);
     console.error('Service account email:', auth.email);
-    errorReporting.report(error);
 
     return {
       status: 500,
@@ -178,7 +171,6 @@ const handleGet = async (event: H3Event<EventHandlerRequest>) => {
     };
   } catch (error) {
     console.error('Error fetching files:', error);
-    errorReporting.report(error);
     throw createError({
       statusCode: 500,
       statusMessage: 'Failed to fetch files from Google Drive',
@@ -223,7 +215,6 @@ const handlePut = async (event: H3Event<EventHandlerRequest>) => {
     };
   } catch (error: any) {
     console.error('Error updating file metadata:', error);
-    errorReporting.report(error);
 
     return {
       status: 500,
@@ -284,7 +275,6 @@ const handlePatch = async (event: H3Event<EventHandlerRequest>) => {
     };
   } catch (error: any) {
     console.error('Error bulk moving files:', error);
-    errorReporting.report(error);
 
     return {
       status: 500,

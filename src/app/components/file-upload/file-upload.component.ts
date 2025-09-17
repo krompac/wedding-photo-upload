@@ -5,6 +5,7 @@ import { EntityId } from '@ngrx/signals/entities';
 import PhotoFileStore from '../../store/photo-file.store';
 
 import ShortUniqueId from 'short-unique-id';
+import { LoadingService } from '../../services/loading.service';
 
 @Component({
   selector: 'app-wedding-photo-upload',
@@ -14,6 +15,7 @@ import ShortUniqueId from 'short-unique-id';
 export class WeddingPhotoUploadComponent {
   /* Dependency injections */
   private readonly store = inject(PhotoFileStore);
+  private readonly loadingService = inject(LoadingService);
 
   readonly errorMessage = signal('');
 
@@ -23,12 +25,29 @@ export class WeddingPhotoUploadComponent {
   readonly uploadSuccess = this.store.uploadSuccess;
 
   onFileSelected(event: Event): void {
-    const loadFile = (file: File) => {
+    const stopLoading = (last: boolean) => {
+      if (last) {
+        this.loadingService.stop();
+      }
+
+      setTimeout(() => {
+        document
+          .querySelector('app-preview-img')
+          ?.scrollTo({ behavior: 'smooth' });
+      }, 50);
+    };
+
+    this.loadingService.start();
+
+    const loadFile = (file: File, last: boolean) => {
       // Check if file is an image
       if (!file.type.match('image.*')) {
         this.errorMessage.set(
           'Molimo učitajte samo slikovne datoteke (jpg, png, itd.)',
         );
+
+        stopLoading(last);
+
         return;
       }
 
@@ -44,12 +63,16 @@ export class WeddingPhotoUploadComponent {
             src: result,
           });
         }
+
+        stopLoading(last);
       };
 
       reader.onerror = () => {
         this.errorMessage.set(
           'Greška kod učitavanja slike, pokušajte ponovno.',
         );
+
+        stopLoading(last);
       };
 
       reader.readAsDataURL(file);
@@ -57,7 +80,9 @@ export class WeddingPhotoUploadComponent {
 
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      Array.from(input.files).forEach((file) => loadFile(file));
+      Array.from(input.files).forEach((file, index) =>
+        loadFile(file, index === (input.files?.length ?? 1) - 1),
+      );
     }
   }
 

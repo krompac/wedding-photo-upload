@@ -5,6 +5,7 @@ import { catchError, map, Observable, of, switchMap } from 'rxjs';
 import { PhotoFile } from '../../model/photo-file.model';
 import { ChunkedUploadService } from '../../services/chunk-upload.service';
 import PhotoFileStore from '../../store/photo-file.store';
+import { Semaphore } from '../../utils/semaphore.utils';
 
 type UrlResponse = {
   success: boolean;
@@ -78,20 +79,31 @@ export class UploadBannerComponent {
 
   readonly files = this.store.entities;
 
+  private readonly semaphore = new Semaphore(5);
+
   async onUpload(): Promise<void> {
     this.errorMessage.emit('');
     const files = this.files();
-    const batchSize = 5;
-
     this.store.setAllToUploading();
 
-    for (let i = 0; i < files.length; i += batchSize) {
-      const batch = files.slice(i, i + batchSize);
+    const uploadPromises: Promise<void>[] = [];
 
-      await Promise.all(
-        batch.map((file, index) => this.uploadService.uploadFile(file, index)),
+    for (let i = 0; i < files.length; i++) {
+      // No await here — start task immediately
+      uploadPromises.push(
+        (async (file, index) => {
+          const release = await this.semaphore.acquire();
+          try {
+            await this.uploadService.uploadFile(file, index);
+          } finally {
+            release();
+          }
+        })(files[i], i),
       );
     }
+
+    // Wait for all uploads to finish
+    await Promise.all(uploadPromises);
   }
 
   private uploadFile(fileToUpload: PhotoFile): void {
