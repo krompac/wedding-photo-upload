@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { effect, inject, Injectable, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { PhotoFile } from '../model/photo-file.model';
 import PhotoFileStore from '../store/photo-file.store';
@@ -21,6 +21,25 @@ export class ChunkedUploadService {
   private readonly photoFileStore = inject(PhotoFileStore);
   private readonly notificationService = inject(NotificationService);
 
+  readonly uploadCount = signal(0);
+
+  constructor() {
+    effect(() =>
+      console.log(
+        `%cUpload count ${this.uploadCount()}`,
+        'font-size: 20px; color: blue',
+      ),
+    );
+  }
+
+  increment(): void {
+    this.uploadCount.update((count) => count + 1);
+  }
+
+  decrement(): void {
+    this.uploadCount.update((count) => count - 1);
+  }
+
   uploadFile(photoFile: PhotoFile, index: number): Observable<UploadResult> {
     const { file, id } = photoFile;
 
@@ -28,6 +47,7 @@ export class ChunkedUploadService {
       (async () => {
         try {
           await wait(100 * index);
+          this.increment();
 
           const sessionUrl = await this.createFileSession(file);
 
@@ -39,6 +59,7 @@ export class ChunkedUploadService {
 
           console.log(`Finished upload of ${file.name}`);
 
+          this.decrement();
           subscriber.next({ success: true, fileName: file.name });
           subscriber.complete();
         } catch (error) {
@@ -55,6 +76,7 @@ export class ChunkedUploadService {
             error: error instanceof Error ? error.message : 'Unknown error',
             fileName: file.name,
           });
+          this.decrement();
           subscriber.complete();
         }
       })();
@@ -128,7 +150,7 @@ export class ChunkedUploadService {
     // 2. choose starting chunk size
     let chunkSize = this.pickInitialChunkSize(speedBps);
     const minChunkSize = 256 * 1024;
-    const maxChunkSize = 5 * 1024 * 1024;
+    const maxChunkSize = 3 * 1024 * 1024;
 
     let offset = 256 * 1024; // because we already sent first 256KB in probe
     this.photoFileStore.updatePhotoProgress(
