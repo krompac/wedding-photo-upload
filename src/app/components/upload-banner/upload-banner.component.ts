@@ -99,7 +99,9 @@ export class UploadBannerComponent {
         bufferCount(5), // group into arrays of 5
         concatMap((batch) =>
           forkJoin(
-            batch.map((file, i) => this.uploadService.uploadFile(file, i)),
+            batch.map((file, i) =>
+              from(this.uploadService.uploadFile(file, i)),
+            ),
           ),
         ),
       )

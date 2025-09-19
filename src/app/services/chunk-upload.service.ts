@@ -1,5 +1,4 @@
-import { effect, inject, Injectable, signal } from '@angular/core';
-import { Observable } from 'rxjs';
+import { inject, Injectable } from '@angular/core';
 import { PhotoFile } from '../model/photo-file.model';
 import PhotoFileStore from '../store/photo-file.store';
 import { wait } from '../utils/wait.util';
@@ -21,66 +20,33 @@ export class ChunkedUploadService {
   private readonly photoFileStore = inject(PhotoFileStore);
   private readonly notificationService = inject(NotificationService);
 
-  readonly uploadCount = signal(0);
-
-  constructor() {
-    effect(() =>
-      console.log(
-        `%cUpload count ${this.uploadCount()}`,
-        'font-size: 20px; color: blue',
-      ),
-    );
-  }
-
-  increment(): void {
-    this.uploadCount.update((count) => count + 1);
-  }
-
-  decrement(): void {
-    this.uploadCount.update((count) => count - 1);
-  }
-
-  uploadFile(photoFile: PhotoFile, index: number): Observable<UploadResult> {
+  async uploadFile(photoFile: PhotoFile, index: number): Promise<UploadResult> {
     const { file, id } = photoFile;
+    try {
+      await wait(100 * index);
 
-    return new Observable<UploadResult>((subscriber) => {
-      (async () => {
-        try {
-          await wait(100 * index);
-          this.increment();
+      const sessionUrl = await this.createFileSession(file);
 
-          const sessionUrl = await this.createFileSession(file);
+      await this.uploadChunks(file, id, sessionUrl);
 
-          await this.uploadChunks(file, id, sessionUrl);
+      // Mark as complete
+      this.photoFileStore.updatePhotoProgress(id, 100);
+      this.photoFileStore.updateStatus(id, 'success');
 
-          // Mark as complete
-          this.photoFileStore.updatePhotoProgress(id, 100);
-          this.photoFileStore.updateStatus(id, 'success');
+      console.log(`Finished upload of ${file.name}`);
 
-          console.log(`Finished upload of ${file.name}`);
+      return { success: true, fileName: file.name };
+    } catch (error) {
+      console.error(`Upload failed for file ${file.name}:`, error);
+      this.photoFileStore.updateStatus(id, 'error');
+      this.photoFileStore.updatePhotoProgress(id, 0);
 
-          this.decrement();
-          subscriber.next({ success: true, fileName: file.name });
-          subscriber.complete();
-        } catch (error) {
-          console.error(`Upload failed for file ${file.name}:`, error);
-          this.photoFileStore.updateStatus(id, 'error');
-          this.photoFileStore.updatePhotoProgress(id, 0);
+      this.notificationService.showError(
+        `Došlo je do greške kod kreiranja slike ${file.name}`,
+      );
 
-          this.notificationService.showError(
-            `Došlo je do greške kod kreiranja slike ${file.name}`,
-          );
-
-          subscriber.error({
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            fileName: file.name,
-          });
-          this.decrement();
-          subscriber.complete();
-        }
-      })();
-    });
+      throw new Error(error instanceof Error ? error.message : 'Unknown error');
+    }
   }
 
   private async createFileSession(file: File, maxRetries = 5): Promise<string> {
