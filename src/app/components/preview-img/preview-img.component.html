@@ -4,7 +4,7 @@
 >
   <img
     [src]="photoFile.src"
-    alt="Wedding photo preview"
+    [alt]="photoFile.file.name"
     class="w-full h-full object-cover"
     [class.opacity-50]="photoFile.status === 'uploading'"
   />
