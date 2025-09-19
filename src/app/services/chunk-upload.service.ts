@@ -1,8 +1,9 @@
 import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 import { PhotoFile } from '../model/photo-file.model';
 import PhotoFileStore from '../store/photo-file.store';
-import { Semaphore } from '../utils/semaphore.utils';
 import { wait } from '../utils/wait.util';
+import { NotificationService } from './notification.service';
 
 interface CreateFileResponse {
   sessionUrl: string;
@@ -10,39 +11,54 @@ interface CreateFileResponse {
 
 interface UploadResult {
   success: boolean;
+  fileName: string;
   error?: string;
 }
 
 @Injectable()
 export class ChunkedUploadService {
+  /* Dependency injections */
   private readonly photoFileStore = inject(PhotoFileStore);
-  private readonly putSemaphore = new Semaphore(10);
+  private readonly notificationService = inject(NotificationService);
 
-  async uploadFile(photoFile: PhotoFile, index: number): Promise<UploadResult> {
+  uploadFile(photoFile: PhotoFile, index: number): Observable<UploadResult> {
     const { file, id } = photoFile;
 
-    try {
-      await wait(100 * index);
+    return new Observable<UploadResult>((subscriber) => {
+      (async () => {
+        try {
+          await wait(100 * index);
 
-      const sessionUrl = await this.createFileSession(file);
+          const sessionUrl = await this.createFileSession(file);
 
-      await this.uploadChunks(file, id, sessionUrl);
+          await this.uploadChunks(file, id, sessionUrl);
 
-      // Mark as complete
-      this.photoFileStore.updatePhotoProgress(id, 100);
-      this.photoFileStore.updateStatus(id, 'success');
+          // Mark as complete
+          this.photoFileStore.updatePhotoProgress(id, 100);
+          this.photoFileStore.updateStatus(id, 'success');
 
-      return { success: true };
-    } catch (error) {
-      console.error(`Upload failed for file ${file.name}:`, error);
-      this.photoFileStore.updateStatus(id, 'error');
-      this.photoFileStore.updatePhotoProgress(id, 0);
+          console.log(`Finished upload of ${file.name}`);
 
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
+          subscriber.next({ success: true, fileName: file.name });
+          subscriber.complete();
+        } catch (error) {
+          console.error(`Upload failed for file ${file.name}:`, error);
+          this.photoFileStore.updateStatus(id, 'error');
+          this.photoFileStore.updatePhotoProgress(id, 0);
+
+          this.notificationService.showError(
+            `Došlo je do greške kod kreiranja slike ${file.name}`,
+          );
+
+          subscriber.error({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            fileName: file.name,
+          });
+          subscriber.complete();
+        }
+      })();
+    });
   }
 
   private async createFileSession(file: File, maxRetries = 5): Promise<string> {
@@ -69,6 +85,9 @@ export class ChunkedUploadService {
         }
 
         const data: { body: CreateFileResponse } = await response.json();
+
+        console.log(`Created url for file: ${file.name}`);
+
         return data.body.sessionUrl;
       } catch (error) {
         const isLastAttempt = attempt === maxRetries;
@@ -178,8 +197,6 @@ export class ChunkedUploadService {
     offset: number,
     end: number,
   ): Promise<void> {
-    const release = await this.putSemaphore.acquire();
-
     try {
       const response = await fetch(
         `/api/test-upload?fileType=${encodeURIComponent(file.type)}&offset=${offset}&end=${end}&fileSize=${file.size}`,
@@ -211,17 +228,11 @@ export class ChunkedUploadService {
           `Chunk upload failed at offset ${offset}: ${response.status} ${response.statusText}`,
         );
       }
-    } finally {
-      release();
+    } catch (e) {
+      this.notificationService.showError(
+        `Došlo je do greške kod uploadanja slike ${file.name}`,
+      );
     }
-  }
-
-  // Utility methods for monitoring
-  getSemaphoreStatus(): { available: number; queued: number } {
-    return {
-      available: this.putSemaphore.availableSlots,
-      queued: this.putSemaphore.queuedTasks,
-    };
   }
 
   // Method to cancel all pending uploads (if needed)

@@ -13,6 +13,9 @@ import PhotoFileStore from '../store/photo-file.store';
   templateUrl: 'index-page.component.html',
   styleUrl: './index-page.component.css',
   providers: [PhotoFileStore, ChunkedUploadService],
+  host: {
+    ['class']: 'block overflow-y-scroll h-[100vh]',
+  },
 })
 export default class WeddingPhotosPage {
   /* Dependency injections */

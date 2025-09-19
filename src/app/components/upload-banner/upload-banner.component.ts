@@ -1,11 +1,18 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, DestroyRef, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, map, Observable, of, switchMap } from 'rxjs';
+import {
+  catchError,
+  from,
+  map,
+  mergeMap,
+  Observable,
+  of,
+  switchMap,
+} from 'rxjs';
 import { PhotoFile } from '../../model/photo-file.model';
 import { ChunkedUploadService } from '../../services/chunk-upload.service';
 import PhotoFileStore from '../../store/photo-file.store';
-import { Semaphore } from '../../utils/semaphore.utils';
 
 type UrlResponse = {
   success: boolean;
@@ -79,31 +86,17 @@ export class UploadBannerComponent {
 
   readonly files = this.store.entities;
 
-  private readonly semaphore = new Semaphore(5);
-
   async onUpload(): Promise<void> {
     this.errorMessage.emit('');
     const files = this.files();
     this.store.setAllToUploading();
 
-    const uploadPromises: Promise<void>[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      // No await here — start task immediately
-      uploadPromises.push(
-        (async (file, index) => {
-          const release = await this.semaphore.acquire();
-          try {
-            await this.uploadService.uploadFile(file, index);
-          } finally {
-            release();
-          }
-        })(files[i], i),
-      );
-    }
-
-    // Wait for all uploads to finish
-    await Promise.all(uploadPromises);
+    from(files)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        mergeMap((file, i) => this.uploadService.uploadFile(file, i), 5), // 5 concurrent
+      )
+      .subscribe((res) => console.log(res));
   }
 
   private uploadFile(fileToUpload: PhotoFile): void {

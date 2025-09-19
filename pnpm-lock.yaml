@@ -89,6 +89,9 @@ importers:
       tailwindcss:
         specifier: 4.1.4
         version: 4.1.4
+      toastify-js:
+        specifier: ^1.12.0
+        version: 1.12.0
       tslib:
         specifier: ^2.3.0
         version: 2.8.1
@@ -120,6 +123,9 @@ importers:
       '@ngrx/signals':
         specifier: 19.2.1
         version: 19.2.1(@angular/core@19.2.15(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2)
+      '@types/toastify-js':
+        specifier: ^1.12.4
+        version: 1.12.4
       autoprefixer:
         specifier: ^10.4.14
         version: 10.4.21(postcss@8.5.3)
@@ -2353,6 +2359,9 @@ packages:
 
   '@types/sockjs@0.3.36':
     resolution: {integrity: sha512-MK9V6NzAS1+Ud7JV9lJLFqW85VbC9dq3LmwZCuBe4wBDgKC0Kj/jd8Xl+nSviU+Qc3+m7umHHyHg//2KSa0a0Q==}
+
+  '@types/toastify-js@1.12.4':
+    resolution: {integrity: sha512-zfZHU4tKffPCnZRe7pjv/eFKzTVHozKewFCKaCjZ4gFinKgJRz/t0bkZiMCXJxPhv/ZoeDGNOeRD09R0kQZ/nw==}
 
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
@@ -5331,6 +5340,9 @@ packages:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
 
+  toastify-js@1.12.0:
+    resolution: {integrity: sha512-HeMHCO9yLPvP9k0apGSdPUWrUbLnxUKNFzgUoZp1PHCLploIX/4DSQ7V8H25ef+h4iO9n0he7ImfcndnN6nDrQ==}
+
   toidentifier@1.0.1:
     resolution: {integrity: sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==}
     engines: {node: '>=0.6'}
@@ -8174,6 +8186,8 @@ snapshots:
   '@types/sockjs@0.3.36':
     dependencies:
       '@types/node': 24.5.1
+
+  '@types/toastify-js@1.12.4': {}
 
   '@types/tough-cookie@4.0.5': {}
 
@@ -11461,6 +11475,8 @@ snapshots:
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
+
+  toastify-js@1.12.0: {}
 
   toidentifier@1.0.1: {}
 
