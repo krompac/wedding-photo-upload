@@ -2,10 +2,12 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, DestroyRef, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
+  bufferCount,
   catchError,
+  concatMap,
+  forkJoin,
   from,
   map,
-  mergeMap,
   Observable,
   of,
   switchMap,
@@ -94,7 +96,12 @@ export class UploadBannerComponent {
     from(files)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        mergeMap((file, i) => this.uploadService.uploadFile(file, i), 5), // 5 concurrent
+        bufferCount(5), // group into arrays of 5
+        concatMap((batch) =>
+          forkJoin(
+            batch.map((file, i) => this.uploadService.uploadFile(file, i)),
+          ),
+        ),
       )
       .subscribe((res) => {
         console.log(res);

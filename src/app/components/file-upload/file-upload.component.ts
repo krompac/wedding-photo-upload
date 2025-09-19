@@ -14,6 +14,7 @@ import PhotoFileStore from '../../store/photo-file.store';
 import ShortUniqueId from 'short-unique-id';
 import { ScrollToDirective } from '../../directives/scroll-to.directive';
 import { LoadingService } from '../../services/loading.service';
+import { getVideoThumbnail } from '../../utils/video-thumnail.util';
 import { wait } from '../../utils/wait.util';
 
 @Component({
@@ -52,17 +53,25 @@ export class WeddingPhotoUploadComponent {
         const reader = new FileReader();
 
         reader.onload = (e) => {
-          const result = e.target?.result;
+          (async () => {
+            const result = e.target?.result;
 
-          if (typeof result === 'string') {
-            this.store.addPhotoFile({
-              id: new ShortUniqueId().rnd(20),
-              file,
-              src: result,
-            });
-          }
+            if (typeof result === 'string') {
+              let src = result;
 
-          resolve(result);
+              if (file.type.match('video.*')) {
+                src = (await getVideoThumbnail(file)) ?? result;
+              }
+
+              this.store.addPhotoFile({
+                id: new ShortUniqueId().rnd(20),
+                file,
+                src,
+              });
+            }
+
+            resolve(result);
+          })();
         };
 
         reader.onerror = () => {
