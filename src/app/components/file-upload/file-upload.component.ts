@@ -12,13 +12,14 @@ import { EntityId } from '@ngrx/signals/entities';
 import PhotoFileStore from '../../store/photo-file.store';
 
 import ShortUniqueId from 'short-unique-id';
+import { ScrollToDirective } from '../../directives/scroll-to.directive';
 import { LoadingService } from '../../services/loading.service';
 import { wait } from '../../utils/wait.util';
 
 @Component({
   selector: 'app-wedding-photo-upload',
   templateUrl: `file-upload.component.html`,
-  imports: [PreviewImgComponent],
+  imports: [PreviewImgComponent, ScrollToDirective],
 })
 export class WeddingPhotoUploadComponent {
   /* Dependency injections */

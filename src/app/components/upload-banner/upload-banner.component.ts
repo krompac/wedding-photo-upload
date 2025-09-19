@@ -96,7 +96,9 @@ export class UploadBannerComponent {
         takeUntilDestroyed(this.destroyRef),
         mergeMap((file, i) => this.uploadService.uploadFile(file, i), 5), // 5 concurrent
       )
-      .subscribe((res) => console.log(res));
+      .subscribe((res) => {
+        console.log(res);
+      });
   }
 
   private uploadFile(fileToUpload: PhotoFile): void {
