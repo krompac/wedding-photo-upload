@@ -46,7 +46,7 @@ export class WeddingPhotoUploadComponent {
             'Molimo učitajte samo slikovne datoteke (jpg, png, itd.) ili video datoteke (mov, mp4, itd.)',
           );
 
-          reject();
+          resolve('');
           return;
         }
 
@@ -79,7 +79,7 @@ export class WeddingPhotoUploadComponent {
             'Greška kod učitavanja slike, pokušajte ponovno.',
           );
 
-          reject();
+          resolve('');
         };
 
         reader.readAsDataURL(file);
