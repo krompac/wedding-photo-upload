@@ -1,9 +1,11 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
 import { PhotoFile } from '../model/photo-file.model';
 import PhotoFileStore from '../store/photo-file.store';
 import { wait } from '../utils/wait.util';
+
+interface CreateFileResponse {
+  sessionUrl: string;
+}
 
 interface UploadResult {
   success: boolean;
@@ -12,10 +14,8 @@ interface UploadResult {
 
 @Injectable()
 export class ChunkedUploadService {
-  /* Dependency injections */
-  private readonly httpClient = inject(HttpClient);
   private readonly photoFileStore = inject(PhotoFileStore);
-  private readonly chunkSize = 1024 * 1024; // 1 MB
+  private readonly chunkSize = 1024 * 1024 * 2; // 2 MB
 
   async uploadFile(photoFile: PhotoFile, index: number): Promise<UploadResult> {
     const { file, id } = photoFile;
@@ -50,24 +50,26 @@ export class ChunkedUploadService {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-        const response = await firstValueFrom(
-          this.httpClient.post<{ status: number; body: { signedUrl: string } }>(
-            '/api/drive-upload',
-            {
-              fileName: file.name,
-              mimeType: file.type,
-              folderPath: 'vjencanje',
-            },
-          ),
-        );
+        const response = await fetch('/api/drive-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            mimeType: file.type,
+            fileSize: file.size,
+            folderPath: 'vjencanje',
+          }),
+          signal: controller.signal,
+        });
 
         clearTimeout(timeoutId);
 
-        if (response.status !== 200) {
-          throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        return response.body.signedUrl;
+        const data: { body: CreateFileResponse } = await response.json();
+        return data.body.sessionUrl;
       } catch (error) {
         const isLastAttempt = attempt === maxRetries;
         const errorMessage =
@@ -109,20 +111,62 @@ export class ChunkedUploadService {
       const end = Math.min(offset + this.chunkSize, file.size);
       const chunk = file.slice(offset, end);
 
-      await firstValueFrom(
-        this.httpClient.put(sessionUrl, chunk, {
-          headers: new HttpHeaders({
-            'Content-Type': file.type || 'application/octet-stream',
-            'Content-Range': `bytes ${offset}-${end - 1}/${file.size}`,
-          }),
-          reportProgress: true,
-          observe: 'events',
-        }),
-      );
+      await this.uploadChunk(chunk, file, fileId, sessionUrl, offset, end);
 
       offset = end;
       const progress = Math.round((offset / file.size) * 100);
       this.photoFileStore.updatePhotoProgress(fileId, progress);
     }
+  }
+
+  private async uploadChunk(
+    chunk: Blob,
+    file: File,
+    fileId: string,
+    sessionUrl: string,
+    offset: number,
+    end: number,
+  ): Promise<void> {
+    try {
+      const response = await fetch(
+        `/api/test-upload?fileType=${encodeURIComponent(file.type)}&offset=${offset}&end=${end}&fileSize=${file.size}`,
+        {
+          method: 'PUT',
+          body: chunk,
+          headers: {
+            'X-Session-URL': sessionUrl,
+            'Content-Type': file.type,
+            'Content-Range': `bytes ${offset}-${end - 1}/${file.size}`,
+          },
+        },
+      );
+
+      if (response.status === 200 || response.status === 201) {
+        // Upload complete
+        return;
+      } else if (response.status === 308) {
+        // Chunk uploaded successfully, more chunks needed
+        const range = response.headers.get('Range');
+        if (range) {
+          console.log(
+            `Chunk uploaded successfully. Server has bytes: ${range}`,
+          );
+        }
+        return;
+      } else {
+        throw new Error(
+          `Chunk upload failed at offset ${offset}: ${response.status} ${response.statusText}`,
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // Method to cancel all pending uploads (if needed)
+  cancelPendingUploads(): void {
+    // Note: This would require additional implementation in the Semaphore class
+    // to properly cancel queued tasks
+    console.warn('Cancel functionality not yet implemented');
   }
 }

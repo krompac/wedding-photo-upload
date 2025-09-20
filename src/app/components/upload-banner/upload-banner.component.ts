@@ -11,6 +11,7 @@ import {
   tap,
 } from 'rxjs';
 import { PhotoFile } from '../../model/photo-file.model';
+import { ChunkedUploadService } from '../../services/chunk-upload.service';
 import PhotoFileStore from '../../store/photo-file.store';
 
 type UrlResponse = {
@@ -75,6 +76,7 @@ export class UploadBannerComponent {
   private readonly http = inject(HttpClient);
   private readonly store = inject(PhotoFileStore);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly uploadService = inject(ChunkedUploadService);
 
   readonly errorMessage = output<string>();
 
@@ -94,7 +96,9 @@ export class UploadBannerComponent {
         takeUntilDestroyed(this.destroyRef),
         bufferCount(5), // group into arrays of 5
         concatMap((batch) =>
-          forkJoin(batch.map((file) => this.uploadFile(file))),
+          forkJoin(
+            batch.map((file, i) => this.uploadService.uploadFile(file, i)),
+          ),
         ),
       )
       .subscribe((res) => {

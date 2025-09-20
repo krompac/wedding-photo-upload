@@ -7,7 +7,7 @@ import {
   readBody,
 } from 'h3';
 
-import { GetSignedUrlConfig, Storage } from '@google-cloud/storage';
+import { Storage } from '@google-cloud/storage';
 
 const credentials = {
   type: process.env['GOOGLE_SERVICE_ACCOUNT_TYPE'] || 'service_account',
@@ -87,18 +87,14 @@ const handlePost = async (event: H3Event<EventHandlerRequest>) => {
 
     const filePath = `${folderPath}/${fileName}`;
     const file = bucket.file(filePath);
-
-    const options: GetSignedUrlConfig = {
-      version: 'v4',
-      action: 'write',
-      expires: Date.now() + 15 * 60 * 1000, // URL is valid for 15 minutes
-    };
-
-    const [url] = await file.getSignedUrl(options);
+    const [location] = await file.createResumableUpload({
+      chunkSize: 5 * 1028 * 1028,
+      isPartialUpload: true,
+    });
 
     return {
       status: 200,
-      body: { signedUrl: url },
+      body: { sessionUrl: location },
     };
   } catch (error: any) {
     console.error('Error generating signed URL:', error.message);
