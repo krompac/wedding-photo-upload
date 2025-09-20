@@ -7,6 +7,8 @@ import {
   readBody,
 } from 'h3';
 
+import { GetSignedUrlConfig, Storage } from '@google-cloud/storage';
+
 const credentials = {
   type: process.env['GOOGLE_SERVICE_ACCOUNT_TYPE'] || 'service_account',
   project_id: process.env['GOOGLE_SERVICE_ACCOUNT_PROJECT_ID'],
@@ -42,8 +44,21 @@ const auth = new google.auth.JWT(
 // Create Drive client
 const drive = google.drive({ version: 'v3', auth });
 
+const storage = new Storage({
+  credentials: {
+    client_email: process.env['GOOGLE_SERVICE_ACCOUNT_CLIENT_EMAIL'],
+    private_key: process.env['GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY']?.replace(
+      /\\n/g,
+      '\n',
+    ),
+  },
+});
+
 // Folder ID where files will be uploaded
 const FOLDER_ID = process.env['GOOGLE_DRIVE_FOLDER_ID'];
+
+const BUCKET_NAME = process.env['GCS_BUCKET_NAME'];
+const bucket = storage.bucket(BUCKET_NAME!);
 
 export default defineEventHandler(async (event) => {
   switch (event.method) {
@@ -64,58 +79,31 @@ export default defineEventHandler(async (event) => {
 
 const handlePost = async (event: H3Event<EventHandlerRequest>) => {
   try {
-    // Read JSON body instead of multipart form data
-    const { fileName, mimeType } = await readBody(event);
-
-    if (!fileName) {
-      return {
-        status: 400,
-        body: { error: 'fileName is required' },
-      };
+    const { fileName, mimeType, folderPath } = await readBody(event);
+    if (!fileName || !mimeType || !folderPath) {
+      event.node.res.statusCode = 400;
+      return { error: 'fileName, mimeType, and folderPath are required' };
     }
 
-    if (!FOLDER_ID) {
-      return { status: 500, body: { error: 'Problem with folder config' } };
-    }
+    const filePath = `${folderPath}/${fileName}`;
+    const file = bucket.file(filePath);
 
-    const driveFile = await drive.files.create({
-      requestBody: { name: fileName, parents: [FOLDER_ID] },
-      fields: 'id,name',
-    });
+    const options: GetSignedUrlConfig = {
+      version: 'v4',
+      action: 'write',
+      expires: Date.now() + 15 * 60 * 1000, // URL is valid for 15 minutes
+    };
 
-    const accessToken = await auth.getAccessToken();
-
-    if (!accessToken.token) {
-      throw new Error('Failed to get access token');
-    }
-
-    const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${driveFile.data.id}?uploadType=media`;
+    const [url] = await file.getSignedUrl(options);
 
     return {
       status: 200,
-      body: {
-        success: true,
-        fileId: driveFile.data.id,
-        fileName: driveFile.data.name,
-        uploadUrl: uploadUrl,
-        accessToken: accessToken.token,
-        expiresAt: Date.now() + 50 * 60 * 1000, // 50 minutes (tokens usually last 1 hour)
-        mimeType: mimeType || 'application/octet-stream',
-        message: 'Upload URL generated successfully',
-      },
+      body: { signedUrl: url },
     };
   } catch (error: any) {
-    console.error('Error generating upload URL:', error);
-    console.error('Folder ID being used:', FOLDER_ID);
-    console.error('Service account email:', auth.email);
-
-    return {
-      status: 500,
-      body: {
-        error: 'Failed to generate upload URL',
-        details: error.message,
-      },
-    };
+    console.error('Error generating signed URL:', error.message);
+    event.node.res.statusCode = 500;
+    return { error: 'Failed to generate signed URL', details: error.message };
   }
 };
 

@@ -1,19 +1,16 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Component, DestroyRef, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   bufferCount,
-  catchError,
   concatMap,
   forkJoin,
   from,
-  map,
   Observable,
-  of,
   switchMap,
+  tap,
 } from 'rxjs';
 import { PhotoFile } from '../../model/photo-file.model';
-import { ChunkedUploadService } from '../../services/chunk-upload.service';
 import PhotoFileStore from '../../store/photo-file.store';
 
 type UrlResponse = {
@@ -78,7 +75,6 @@ export class UploadBannerComponent {
   private readonly http = inject(HttpClient);
   private readonly store = inject(PhotoFileStore);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly uploadService = inject(ChunkedUploadService);
 
   readonly errorMessage = output<string>();
 
@@ -98,11 +94,7 @@ export class UploadBannerComponent {
         takeUntilDestroyed(this.destroyRef),
         bufferCount(5), // group into arrays of 5
         concatMap((batch) =>
-          forkJoin(
-            batch.map((file, i) =>
-              from(this.uploadService.uploadFile(file, i)),
-            ),
-          ),
+          forkJoin(batch.map((file) => this.uploadFile(file))),
         ),
       )
       .subscribe((res) => {
@@ -110,79 +102,107 @@ export class UploadBannerComponent {
       });
   }
 
-  private uploadFile(fileToUpload: PhotoFile): void {
-    // TODO: treba zapravo raditi za svaki file jedan request -> napraviti componentu koja enkapsulira i upload i choose stvari
-    //       tak da se za svaku more napraviti loading
-    //       i onda jedna wrapper componenta koja bude imala count i završni all is finished!
-
-    // Send the file to our server endpoint
+  private uploadFile(fileToUpload: PhotoFile): Observable<any> {
     const id = fileToUpload.id;
     const file = fileToUpload.file;
     const fileName = `vjencanje_foto_${Date.now()}_${fileToUpload.file.name}`;
-
     const updatestatus = (status: PhotoFile['status']) =>
       this.store.updateStatus(id, status);
 
     updatestatus('uploading');
 
-    this.http
-      .post<{ status: number; body: UrlResponse }>('/api/drive-upload', {
-        fileName,
-        mimeType: file.type,
-        fileSize: file.size,
-      })
+    return this.http
+      .post<{ status: number; body: { signedUrl: string } }>(
+        '/api/drive-upload',
+        {
+          fileName,
+          mimeType: file.type,
+          folderPath: 'vjencanje',
+        },
+      )
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        switchMap((res) =>
-          this.patchFile(
-            file,
-            res.body.uploadUrl,
-            res.body.accessToken,
-            res.body.fileId,
-          ),
-        ),
-      )
-      .subscribe({
-        next: () => {
-          updatestatus('success');
-        },
-        error: (error) => {
-          updatestatus('error');
-          this.errorMessage.emit(
-            'Učitavanje nije uspjelo. Molimo pokušajte ponovno.',
-          );
-          console.error(
-            `Error uploading file ${fileToUpload.file.name}:`,
-            error,
-          );
-        },
-      });
+        switchMap((res) => {
+          const uploadUrl = res.body.signedUrl;
+          if (!uploadUrl) {
+            throw new Error('No upload URL returned from initiation');
+          }
+          return this.directUploadWithProgress(file, uploadUrl, id);
+        }),
+        tap({
+          next: (res) => {
+            console.log('Upload event:', res);
+
+            // Handle different event types
+            if (res.type === HttpEventType.UploadProgress) {
+              const progress = Math.round((100 * res.loaded) / res.total!);
+              console.log(`Upload progress: ${progress}%`);
+            } else if (res.type === HttpEventType.Response) {
+              console.log('Upload complete:', res);
+              updatestatus('success');
+            }
+          },
+          error: (error) => {
+            updatestatus('error');
+            this.errorMessage.emit(
+              'Učitavanje nije uspjelo. Molimo pokušajte ponovno.',
+            );
+            console.error(
+              `Error uploading file ${fileToUpload.file.name}:`,
+              error,
+            );
+          },
+        }),
+      );
   }
 
-  private patchFile(
+  private directUploadWithProgress(
     file: File,
-    uploadUrl: string,
-    accessToken: string,
+    signedUrl: string,
     fileId: string,
   ): Observable<any> {
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': file.type,
-    });
+    return new Observable((subscriber) => {
+      const xhr = new XMLHttpRequest();
 
-    return this.http.patch(uploadUrl, file, { headers }).pipe(
-      map(() => ({
-        fileName: file.name,
-        status: 'completed' as const,
-        fileId,
-      })),
-      catchError((error) =>
-        of({
-          fileName: file.name,
-          status: 'error' as const,
-          error: `Upload failed: ${error.status || error.message}`,
-        }),
-      ),
-    );
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          this.store.updatePhotoProgress(fileId, progress);
+
+          subscriber.next({
+            type: 'progress',
+            progress,
+            loaded: event.loaded,
+            total: event.total,
+          });
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          this.store.updateStatus(fileId, 'success');
+          subscriber.next({ type: 'complete', response: xhr.response });
+          subscriber.complete();
+        } else {
+          subscriber.error(
+            new Error(`Upload failed with status ${xhr.status}`),
+          );
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        subscriber.error(new Error('Upload failed'));
+      });
+
+      // Direct PUT to signed URL
+      xhr.open('PUT', signedUrl);
+      xhr.setRequestHeader(
+        'Content-Type',
+        file.type || 'application/octet-stream',
+      );
+      xhr.send(file);
+
+      return () => xhr.abort();
+    });
   }
 }
